@@ -210,10 +210,8 @@
           const discountedPrice = (originalPrice * 0.9).toFixed(2);
 
           priceConsumidor.style.display = 'block';
-          priceConsumidor.innerHTML = `
-            Precio Original: $${originalPrice}<br>
-            Precio con Descuento: $${discountedPrice}
-          `;
+          priceConsumidor.innerHTML = `${originalPrice} - ${discountedPrice}
+          <span>Precio Original - Precio Descuento</span>`;
         } else {
           priceMayorista.style.display = 'block';
           priceMayorista.textContent = row[5] ? row[5] : 'Sin precio';
