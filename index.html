@@ -9,7 +9,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      height: 100vh;
+      height: 85vh;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -206,8 +206,14 @@
       if (row) {
         productName.textContent = row[3] || '';
         if (mode === 'Consumidor') {
+          const originalPrice = parseFloat(row[4]) || 0;
+          const discountedPrice = (originalPrice * 0.9).toFixed(2);
+
           priceConsumidor.style.display = 'block';
-          priceConsumidor.textContent = row[4] ? row[4] : 'Sin precio';
+          priceConsumidor.innerHTML = `
+            Precio Original: $${originalPrice}<br>
+            Precio con Descuento: $${discountedPrice}
+          `;
         } else {
           priceMayorista.style.display = 'block';
           priceMayorista.textContent = row[5] ? row[5] : 'Sin precio';
