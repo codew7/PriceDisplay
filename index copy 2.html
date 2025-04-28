@@ -7,9 +7,11 @@
   <link rel="icon" href="faviconnegro.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <style>
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      height: 100vh;
+      height: 85vh;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -17,32 +19,21 @@
       color: #333;
       overflow: hidden;
     }
+
     header {
+      height: auto;
       display: flex;
-      justify-content: center;
+      justify-content: space-around;
       padding: 10px;
       background-color: #fff;
       border-bottom: 1px solid #e0e0e0;
     }
-    header button {
+
+    .price-title {
       font-size: 16px;
-      padding: 10px 20px;
-      margin: 0 5px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-weight: bold;
     }
-    header button.active {
-      background-color: #007bff;
-      color: #fff;
-    }
-    #app {
-      display: none;
-      flex: 1;
-      flex-direction: column;
-    }
+    
     #pricesDisplay {
       height: 10vh;
       display: flex;
@@ -57,6 +48,7 @@
       max-width: 97%;
       overflow-wrap: break-word;
     }
+
     .price-item {
       text-align: center;
       flex: 1;
@@ -65,11 +57,13 @@
       justify-content: center;
       align-items: center;
     }
-    #pricesDisplay span {
-      display: none;
+
+    .price-item span {
+      display: block;
       margin-top: 2px;
-      font-weight: bold;
+      font-weight: normal;
     }
+
     #productDisplay {
       height: 8vh;
       margin: 5px;
@@ -82,6 +76,7 @@
       align-items: center;
       text-align: center;
     }
+
     #display {
       height: 8vh;
       margin: 5px;
@@ -95,6 +90,7 @@
       color: red;
       text-align: center;
     }
+
     #keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -102,6 +98,7 @@
       padding: 5px;
       flex-grow: 1;
     }
+
     #keypad button {
       font-size: 30px;
       padding: 5px;
@@ -111,92 +108,73 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       cursor: pointer;
     }
+
     #new {
       grid-column: 2 / span 2;
       background-color: #e0e0e0;
       color: #333;
     }
+
   </style>
 </head>
 <body>
   <header>
-    <button id="btnConsumidor">Consumidor Final</button>
-    <button id="btnMayorista">Mayorista</button>
+    <div class="price-title">Consumidor</div>
+    <div class="price-title">Mayorista</div>
   </header>
-
-  <div id="app">
-    <div id="pricesDisplay">
-      <div class="price-item">
-        <span id="priceConsumidor"></span>
-        <span id="priceMayorista"></span>
-      </div>
+  <div id="pricesDisplay">
+    <div class="price-item">
+      <span id="priceConsumidor"></span>
     </div>
-    <div id="productDisplay"><span id="productName"></span></div>
-    <div id="display"><span id="codeDisplay"></span></div>
-    <div id="keypad">
-      <button onclick="press('1')">1</button>
-      <button onclick="press('2')">2</button>
-      <button onclick="press('3')">3</button>
-      <button onclick="press('4')">4</button>
-      <button onclick="press('5')">5</button>
-      <button onclick="press('6')">6</button>
-      <button onclick="press('7')">7</button>
-      <button onclick="press('8')">8</button>
-      <button onclick="press('9')">9</button>
-      <button onclick="press('0')">0</button>
-      <button id="new" onclick="reset()">Nuevo</button>
+    <div class="price-item">
+      <span id="priceMayorista"></span>
     </div>
   </div>
+  <div id="productDisplay"><span id="productName"></span></div>
+  <div id="display"><span id="codeDisplay"></span></div>
+  <div id="keypad">
+    <button onclick="press('1')">1</button>
+    <button onclick="press('2')">2</button>
+    <button onclick="press('3')">3</button>
+    <button onclick="press('4')">4</button>
+    <button onclick="press('5')">5</button>
+    <button onclick="press('6')">6</button>
+    <button onclick="press('7')">7</button>
+    <button onclick="press('8')">8</button>
+    <button onclick="press('9')">9</button>
+    <button onclick="press('0')">0</button>
+    <button id="new" onclick="reset()">Nuevo</button>
+  </div>
+
+  <!-- <img src="logo.png" alt="Logo" style="width: 250px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);"> -->
+ 
 
 <script>
   const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
   const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
   const RANGO = 'PriceDisplay!A2:F';
-
   let code = '';
-  let mode = '';
   const codeDisplay = document.getElementById('codeDisplay');
   const priceConsumidor = document.getElementById('priceConsumidor');
   const priceMayorista = document.getElementById('priceMayorista');
   const productName = document.getElementById('productName');
-  const btnC = document.getElementById('btnConsumidor');
-  const btnM = document.getElementById('btnMayorista');
-  const app = document.getElementById('app');
-
-  btnC.addEventListener('click', () => selectMode('Consumidor'));
-  btnM.addEventListener('click', () => selectMode('Mayorista'));
-
-  function selectMode(selected) {
-    mode = selected;
-    btnC.classList.toggle('active', selected === 'Consumidor');
-    btnM.classList.toggle('active', selected === 'Mayorista');
-    app.style.display = 'flex';
-    reset();
-  }
-
   function press(num) {
-    if (!mode) return;
     if (code.length >= 5) return;
     code += num;
     codeDisplay.textContent = code;
     clearFields();
     if (code.length === 5) fetchData();
   }
-
   function reset() {
     code = '';
     codeDisplay.textContent = '';
     clearFields();
   }
-
   function clearFields() {
-    priceConsumidor.style.display = 'none';
-    priceMayorista.style.display = 'none';
     priceConsumidor.textContent = '';
     priceMayorista.textContent = '';
     productName.textContent = '';
   }
-
   async function fetchData() {
     try {
       const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
@@ -205,31 +183,29 @@
       const row = rows.find(r => r[2] === code);
       if (row) {
         productName.textContent = row[3] || '';
-        if (mode === 'Consumidor') {
-          priceConsumidor.style.display = 'block';
-          priceConsumidor.textContent = row[4] ? row[4] : 'Sin precio';
-        } else {
-          priceMayorista.style.display = 'block';
-          priceMayorista.textContent = row[5] ? row[5] : 'Sin precio';
-        }
+        priceConsumidor.textContent = row[4] ? row[4] : 'Sin precio';
+        priceMayorista.textContent = row[5] ? row[5] : 'Sin precio';
       } else {
         productName.textContent = 'Artículo no encontrado';
-        if (mode === 'Consumidor') priceConsumidor.textContent = '—';
-        else priceMayorista.textContent = '—';
+        priceConsumidor.textContent = '—';
+        priceMayorista.textContent = '—';
       }
     } catch (e) {
       productName.textContent = 'Error de conexión';
-      if (mode === 'Consumidor') priceConsumidor.textContent = 'Error';
-      else priceMayorista.textContent = 'Error';
+      priceConsumidor.textContent = 'Error';
+      priceMayorista.textContent = 'Error';
       console.error(e);
     }
   }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(registration => console.log('Service Worker registrado:', registration.scope))
-      .catch(err => console.error('Error al registrar SW:', err));
-  }
+  if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(registration => {
+      console.log("Service Worker registrado con éxito:", registration.scope);
+    })
+    .catch(error => {
+      console.error("Error al registrar el Service Worker:", error);
+    });
+}
 </script>
 </body>
 </html>
