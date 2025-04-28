@@ -206,13 +206,16 @@
       if (row) {
         productName.textContent = row[3] || '';
         if (mode === 'Consumidor') {
-          const originalPrice = parseFloat(row[4]) || 0;
-          const discountedPrice = (originalPrice * 0.9).toFixed(2);
+          const originalPrice = parseFloat(row[4]);
+          const discountedPrice = originalPrice ? (originalPrice * 0.9).toFixed(2) : 'N/A';
 
           priceConsumidor.style.display = 'block';
-          priceConsumidor.innerHTML = `
-            ${originalPrice} - ${discountedPrice}<br>
-            Original - Descuento
+            priceConsumidor.innerHTML = `
+            <span style="font-size: 0.8em;">
+              ${originalPrice || 'N/A'} - ${discountedPrice}<br>
+              Original - Descuento
+            </span>
+            `;
           `;
         } else {
           priceMayorista.style.display = 'block';
