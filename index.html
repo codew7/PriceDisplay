@@ -222,18 +222,11 @@
     codeDisplay.textContent = '';
     clearFields();
   }
-  function restart() {
-    code = '';
-    codeDisplay.textContent = '';
-    clearFields();
-    app.style.display = 'none';
-    mainHeader.style.display = 'none';
-    mode = '';
-    btnC.classList.remove('active');
-    btnM.classList.remove('active');
-    modeSelector.style.display = 'flex';
-    setTimeout(() => modeSelector.classList.remove('hidden'), 10);
-  }
+function restart() {
+  code = '';
+  codeDisplay.textContent = '';
+  clearFields();
+}
   function press(num) {
     if (!mode) return;
     if (code.length >= 5) return;
