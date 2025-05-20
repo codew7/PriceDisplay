@@ -197,6 +197,7 @@
   const RANGO = 'PriceDisplay!A2:G';
   let code = '';
   let mode = '';
+  let inactivityTimer = null;
   const codeDisplay = document.getElementById('codeDisplay');
   const priceOriginal = document.getElementById('priceOriginal');
   const priceDescuento = document.getElementById('priceDescuento');
@@ -226,13 +227,31 @@ function restart() {
   code = '';
   codeDisplay.textContent = '';
   clearFields();
+  resetInactivityTimer();
 }
+  function resetInactivityTimer() {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    if (code.length > 0) {
+      inactivityTimer = setTimeout(() => {
+        // Volver al selector de modo y limpiar todo
+        mode = '';
+        code = '';
+        codeDisplay.textContent = '';
+        clearFields();
+        app.style.display = 'none';
+        mainHeader.style.display = 'none';
+        modeSelector.classList.remove('hidden');
+        modeSelector.style.display = 'flex';
+      }, 10000); // 2 minutos
+    }
+  }
   function press(num) {
     if (!mode) return;
     if (code.length >= 5) return;
     code += num;
     codeDisplay.textContent = code;
     clearFields();
+    resetInactivityTimer();
     if (code.length === 5) fetchData();
   }
   function clearFields() {
