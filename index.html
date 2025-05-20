@@ -192,9 +192,11 @@
     </div>
   </div>
 <script>
+
   const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
   const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
   const RANGO = 'PriceDisplay!A2:G';
+  
   let code = '';
   let mode = '';
   let inactivityTimer = null;
@@ -211,6 +213,7 @@
   const mainHeader = document.getElementById('mainHeader');
   btnC.addEventListener('click', () => selectMode('Consumidor Final'));
   btnM.addEventListener('click', () => selectMode('Mayorista'));
+
   function selectMode(selected) {
     mode = selected;
     btnC.classList.toggle('active', mode === 'Consumidor Final');
@@ -223,12 +226,14 @@
     codeDisplay.textContent = '';
     clearFields();
   }
+
 function restart() {
   code = '';
   codeDisplay.textContent = '';
   clearFields();
   resetInactivityTimer();
 }
+
   function resetInactivityTimer() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
     if (code.length > 0) {
@@ -242,9 +247,10 @@ function restart() {
         mainHeader.style.display = 'none';
         modeSelector.classList.remove('hidden');
         modeSelector.style.display = 'flex';
-      }, 10000); // 2 minutos
+      }, 60000); // 1 minutos
     }
   }
+
   function press(num) {
     if (!mode) return;
     if (code.length >= 5) return;
@@ -254,6 +260,7 @@ function restart() {
     resetInactivityTimer();
     if (code.length === 5) fetchData();
   }
+
   function clearFields() {
     priceOriginal.style.display = 'none';
     priceDescuento.style.display = 'none';
@@ -264,6 +271,7 @@ function restart() {
     priceMayorista.textContent = '';
     productName.textContent = '';
   }
+
   async function fetchData() {
     try {
       const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
@@ -301,6 +309,17 @@ function restart() {
       console.error(e);
     }
   }
+  mainHeader.addEventListener('click', () => {
+  mode = '';
+  code = '';
+  codeDisplay.textContent = '';
+  clearFields();
+  app.style.display = 'none';
+  mainHeader.style.display = 'none';
+  modeSelector.classList.remove('hidden');
+  modeSelector.style.display = 'flex';
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+});
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
   }
