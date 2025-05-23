@@ -231,15 +231,7 @@ function restart() {
   code = '';
   codeDisplay.textContent = '';
   clearFields();
-  resetInactivityTimer();
 }
-
-  function resetInactivityTimer() {
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-      location.reload();
-    }, 60000); // 1 minuto
-  }
 
   function press(num) {
     if (!mode) return;
@@ -247,7 +239,6 @@ function restart() {
     code += num;
     codeDisplay.textContent = code;
     clearFields();
-    resetInactivityTimer();
     if (code.length === 5) fetchData();
   }
 
@@ -310,23 +301,24 @@ function restart() {
   modeSelector.style.display = 'flex';
   if (inactivityTimer) clearTimeout(inactivityTimer);
 });
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    // Volver al selector de modos
-    mode = '';
-    code = '';
-    codeDisplay.textContent = '';
-    clearFields();
-    app.style.display = 'none';
-    mainHeader.style.display = 'none';
-    modeSelector.classList.remove('hidden');
-    modeSelector.style.display = 'flex';
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-  }
-});
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
   }
+
+  function resetInactivityTimer() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    location.reload();
+  }, 10000); // 10 segundos
+}
+
+// Reinicia el timer en cada interacción relevante
+['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, resetInactivityTimer, true);
+});
+
+// Inicia el timer al cargar la página
+resetInactivityTimer();
 </script>
 </body>
 </html>
