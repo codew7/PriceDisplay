@@ -290,6 +290,7 @@ function restart() {
       console.error(e);
     }
   }
+  // Reinicia el modo y oculta el selector al hacer clic en el encabezado  
   mainHeader.addEventListener('click', () => {
   mode = '';
   code = '';
@@ -300,17 +301,18 @@ function restart() {
   modeSelector.classList.remove('hidden');
   modeSelector.style.display = 'flex';
   if (inactivityTimer) clearTimeout(inactivityTimer);
-});
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
-  }
+    });
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
+      }
 
+  // Manejo de la inactividad
   function resetInactivityTimer() {
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => {
-    location.reload();
-  }, 10000); // 10 segundos
-}
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      location.reload();
+    }, 120000); // 120 segundos
+    }
 
 // Reinicia el timer en cada interacción relevante
 ['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
