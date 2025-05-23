@@ -310,6 +310,20 @@ function restart() {
   modeSelector.style.display = 'flex';
   if (inactivityTimer) clearTimeout(inactivityTimer);
 });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Volver al selector de modos
+    mode = '';
+    code = '';
+    codeDisplay.textContent = '';
+    clearFields();
+    app.style.display = 'none';
+    mainHeader.style.display = 'none';
+    modeSelector.classList.remove('hidden');
+    modeSelector.style.display = 'flex';
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+  }
+});
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
   }
