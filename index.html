@@ -236,19 +236,9 @@ function restart() {
 
   function resetInactivityTimer() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
-    if (code.length > 0) {
-      inactivityTimer = setTimeout(() => {
-        // Volver al selector de modo y limpiar todo
-        mode = '';
-        code = '';
-        codeDisplay.textContent = '';
-        clearFields();
-        app.style.display = 'none';
-        mainHeader.style.display = 'none';
-        modeSelector.classList.remove('hidden');
-        modeSelector.style.display = 'flex';
-      }, 60000); // 1 minutos
-    }
+    inactivityTimer = setTimeout(() => {
+      location.reload();
+    }, 60000); // 1 minuto
   }
 
   function press(num) {
