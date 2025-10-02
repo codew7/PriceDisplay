@@ -70,8 +70,7 @@
       font-weight: bold;
       text-align: center;
     }
-    #productDisplay,
-    #display {
+    #productDisplay {
       height: 8vh;
       margin: 5px;
       padding: 5px;
@@ -83,7 +82,83 @@
       align-items: center;
       text-align: center;
     }
-    #display { color: red; }
+    #productImage {
+      margin: 5px;
+      padding: 5px;
+      background-color: #fff;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    #keypad.hidden {
+      display: none;
+    }
+    #newFullWidth {
+      display: none;
+      width: 100%;
+      margin: 10px 0;
+      padding: 20px;
+      font-size: 30px;
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #newFullWidth:active {
+      background-color: #007bff;
+      color: #fff;
+    }
+    #inputSection {
+      margin: 5px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    #barcodeInput {
+      width: 100%;
+      height: 50px;
+      font-size: 20px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 10px;
+      outline: none;
+      transition: border-color 0.3s;
+      font-weight: bold;
+    }
+    #barcodeInput:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0,123,255,0.3);
+    }
+    /* Estados del sistema */
+    .processing #barcodeInput {
+      border-color: #ffc107;
+      background-color: #fff3cd;
+    }
+    .success #barcodeInput {
+      border-color: #28a745;
+      background-color: #d4edda;
+    }
+    .error #barcodeInput {
+      border-color: #dc3545;
+      background-color: #f8d7da;
+    }
+    .scanner-ready {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
     #pricesDisplay {
       height: 10vh;
       margin: 5px;
@@ -110,10 +185,11 @@
     }
     /* Precios ocultos por defecto */
     #priceOriginal,
-    #priceDescuento,
     #priceMayorista {
       display: none;
       font-weight: bold;
+        width: 100%;
+        text-align: center;
     }
     #discountDisplay {
       display: none;
@@ -160,23 +236,27 @@
 </head>
 <body>
   <header id="modeSelector">
-    <button id="btnConsumidor">Consumidor Final</button>
-    <button id="btnMayorista">Mayorista</button>
+     <button id="btnMayorista">Mayorista</button>
+     <button id="btnConsumidor">Consumidor Final</button>
   </header>
   <div id="app">
     <header id="mainHeader"></header>
     <div id="productDisplay"><span id="productName"></span></div>
+    <div id="productImage">
+      <img id="productImg" src="" alt="" style="width: 300px; height: 300px; object-fit: cover; border-radius: 8px; display: none;">
+    </div>
     <div id="pricesDisplay">
       <div class="price-item">
         <div id="priceRow">
           <div id="priceOriginal"></div>
-          <div id="priceDescuento"></div>
         </div>
         <div id="priceMayorista"></div>
       </div>
     </div>
-    <div id="discountDisplay">10% de descuento</div>
-    <div id="display"><span id="codeDisplay"></span></div>
+      <!-- <div id="discountDisplay">10% de descuento</div> -->
+    <div id="inputSection">
+      <input type="text" id="barcodeInput" placeholder="Escanee código de barras o ingrese manualmente..." maxlength="13" autocomplete="off">
+    </div>
     <div id="keypad">
       <button onclick="press('1')">1</button>
       <button onclick="press('2')">2</button>
@@ -190,112 +270,298 @@
       <button onclick="press('0')">0</button>
       <button id="new" onclick="restart()">Nuevo</button>
     </div>
+    <button id="newFullWidth" onclick="restart()">Nuevo</button>
   </div>
 <script>
 
   const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
   const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
-  const RANGO = 'PriceDisplay!A2:G';
+  const RANGO = 'PriceDisplay!A2:I';
   
   let code = '';
   let mode = '';
   let inactivityTimer = null;
-  const codeDisplay = document.getElementById('codeDisplay');
+  let inputMode = 'manual'; // 'manual' o 'scanner'
+  let barcodeBuffer = '';
+  let lastKeyTime = 0;
+  
   const priceOriginal = document.getElementById('priceOriginal');
-  const priceDescuento = document.getElementById('priceDescuento');
   const priceMayorista = document.getElementById('priceMayorista');
-  const discountDisplay = document.getElementById('discountDisplay');
   const productName = document.getElementById('productName');
+  const productImg = document.getElementById('productImg');
   const btnC = document.getElementById('btnConsumidor');
   const btnM = document.getElementById('btnMayorista');
   const modeSelector = document.getElementById('modeSelector');
   const app = document.getElementById('app');
   const mainHeader = document.getElementById('mainHeader');
+  const barcodeInput = document.getElementById('barcodeInput');
+  const keypad = document.getElementById('keypad');
+  const newFullWidth = document.getElementById('newFullWidth');
   btnC.addEventListener('click', () => selectMode('Consumidor Final'));
   btnM.addEventListener('click', () => selectMode('Mayorista'));
+  
+  // Eventos del input manual
+  barcodeInput.addEventListener('input', handleManualInput);
+  barcodeInput.addEventListener('keypress', handleManualKeypress);
 
-  function selectMode(selected) {
+  // Mantener el foco en el campo de ingreso de código
+  function keepBarcodeInputFocus() {
+    barcodeInput.focus();
+  }
+
+  // Reforzar el foco en eventos comunes
+  ['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, keepBarcodeInputFocus, true);
+  });
+  
+  // Listener global para detectar códigos de barras
+  document.addEventListener('keydown', handleBarcodeInput);  function selectMode(selected) {
     mode = selected;
     btnC.classList.toggle('active', mode === 'Consumidor Final');
     btnM.classList.toggle('active', mode === 'Mayorista');
     mainHeader.textContent = mode;
     mainHeader.style.display = 'flex';
     modeSelector.classList.add('hidden');
-    setTimeout(() => { modeSelector.style.display = 'none'; app.style.display = 'flex'; }, 500);
-    code = '';
-    codeDisplay.textContent = '';
-    clearFields();
+    setTimeout(() => { 
+      modeSelector.style.display = 'none'; 
+      app.style.display = 'flex';
+      barcodeInput.focus();
+      setTimeout(() => barcodeInput.focus(), 100);
+    }, 500);
+    restart();
   }
 
 function restart() {
   code = '';
-  codeDisplay.textContent = '';
+  barcodeInput.value = '';
+  barcodeBuffer = '';
   clearFields();
 }
 
+
+  
+  function handleManualInput(e) {
+    const value = e.target.value.replace(/[^0-9]/g, ''); // Solo números
+    e.target.value = value;
+    
+    if (value.length > 0) {
+      code = value;
+      clearFields();
+    }
+  }
+  
+  function handleManualKeypress(e) {
+    if (e.key === 'Enter' && barcodeInput.value.length >= 4) {
+      processBarcode(barcodeInput.value);
+    }
+  }
+  
+  function handleBarcodeInput(e) {
+    if (!mode) return;
+    
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastKeyTime;
+    
+    // Si el tiempo entre teclas es muy corto (< 50ms), probablemente es un escáner
+    if (timeDiff > 100 && barcodeBuffer.length > 0) {
+      barcodeBuffer = ''; // Reiniciar si hay mucha pausa
+    }
+    
+    lastKeyTime = currentTime;
+    
+    if (e.key === 'Enter') {
+      if (barcodeBuffer.length >= 4) {
+        processBarcode(barcodeBuffer);
+      }
+      barcodeBuffer = '';
+    } else if (e.key.match(/[0-9]/)) {
+      barcodeBuffer += e.key;
+      
+      // Mostrar progreso en el input
+      barcodeInput.value = barcodeBuffer;
+      
+      // Auto-procesar si alcanza longitud máxima esperada
+      if (barcodeBuffer.length >= 13) {
+        processBarcode(barcodeBuffer);
+        barcodeBuffer = '';
+      }
+    }
+  }
+  
+  function processBarcode(barcodeValue) {
+    const cleanCode = barcodeValue.replace(/[^\d]/g, '');
+    
+    if (!validateBarcode(barcodeValue)) {
+      showError('Código de barras inválido');
+      return;
+    }
+    
+    setSystemState('processing');
+    
+    // Para búsqueda, usar los últimos 5 dígitos si el código es más largo
+    code = cleanCode.length > 5 ? cleanCode.slice(-5) : cleanCode;
+    
+    barcodeInput.value = cleanCode;
+    clearFields();
+    
+    fetchData();
+  }
+  
+  function validateBarcode(barcode) {
+    // Eliminar espacios y caracteres no numéricos
+    const cleanCode = barcode.replace(/[^\d]/g, '');
+    
+    // Validaciones para diferentes tipos de códigos de barras
+    const validLengths = [4, 5, 8, 12, 13, 14]; // Longitudes comunes
+    
+    if (!validLengths.includes(cleanCode.length)) {
+      return false;
+    }
+    
+    // Validación básica EAN-13 (si tiene 13 dígitos)
+    if (cleanCode.length === 13) {
+      return validateEAN13(cleanCode);
+    }
+    
+    // Para otros códigos, solo verificar que sean numéricos
+    return /^\d+$/.test(cleanCode);
+  }
+  
+  function validateEAN13(code) {
+    if (code.length !== 13) return false;
+    
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      const digit = parseInt(code[i]);
+      sum += (i % 2 === 0) ? digit : digit * 3;
+    }
+    
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return checkDigit === parseInt(code[12]);
+  }
+  
+  function showError(message) {
+    setSystemState('error');
+    productName.textContent = message;
+    setTimeout(() => {
+      if (productName.textContent === message) {
+        productName.textContent = '';
+        setSystemState('ready');
+      }
+    }, 3000);
+  }
+  
+  function setSystemState(state) {
+    // Remover clases anteriores
+    app.classList.remove('processing', 'success', 'error', 'scanner-ready');
+    
+    switch(state) {
+      case 'processing':
+        app.classList.add('processing');
+        break;
+      case 'success':
+        app.classList.add('success');
+        setTimeout(() => setSystemState('ready'), 2000);
+        break;
+      case 'error':
+        app.classList.add('error');
+        break;
+      case 'ready':
+        if (inputMode === 'scanner') {
+          app.classList.add('scanner-ready');
+        }
+        break;
+    }
+  }
+
   function press(num) {
     if (!mode) return;
-    if (code.length >= 5) return;
+    
+    if (code.length >= 13) return; // Permitir códigos más largos
     code += num;
-    codeDisplay.textContent = code;
+    barcodeInput.value = code;
     clearFields();
-    if (code.length === 5) fetchData();
+    
+    // Auto-buscar cuando alcance 5 dígitos
+    if (code.length >= 5) {
+      processBarcode(code);
+    }
   }
 
   function clearFields() {
     priceOriginal.style.display = 'none';
-    priceDescuento.style.display = 'none';
     priceMayorista.style.display = 'none';
-    discountDisplay.style.display = 'none';
     priceOriginal.textContent = '';
-    priceDescuento.textContent = '';
     priceMayorista.textContent = '';
     productName.textContent = '';
+    productImg.style.display = 'none';
+    productImg.src = '';
+    // Mostrar teclado y ocultar botón ancho
+    keypad.classList.remove('hidden');
+    newFullWidth.style.display = 'none';
   }
 
   async function fetchData() {
     try {
       const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
       const data = await resp.json();
-      const row = (data.values||[]).find(r => r[2] === code);
+      const row = (data.values||[]).find(r => r[8] === code);
       if (row) {
+        setSystemState('success');
         productName.textContent = row[3]||'';
-        if (mode=== 'Consumidor Final') {
-          priceOriginal.textContent = row[4]||'Sin precio';
-          priceDescuento.textContent = row[6]||'Sin precio';
-          priceOriginal.style.display='block';
-          priceDescuento.style.display='block';
-          discountDisplay.style.display='block';
-        } else {
-          priceMayorista.textContent = row[5]||'Sin precio';
-          priceMayorista.style.display = 'block';
+        
+        // Mostrar imagen del producto (columna B - primer link)
+        if (row[1]) {
+          const imageLinks = row[1].split(',');
+          const firstImageLink = imageLinks[0].trim();
+          if (firstImageLink) {
+            productImg.src = firstImageLink;
+            productImg.style.display = 'block';
+          }
         }
+        
+          if (mode=== 'Consumidor Final') {
+            priceOriginal.textContent = row[4]||'Sin precio';
+            priceOriginal.style.display='block';
+          } else {
+            priceMayorista.textContent = row[5]||'Sin precio';
+            priceMayorista.style.display = 'block';
+          }
+          
+          // Ocultar teclado y mostrar botón ancho cuando se encuentre un producto
+          keypad.classList.add('hidden');
+          newFullWidth.style.display = 'block';
       } else {
+        setSystemState('error');
         productName.textContent = 'Artículo no encontrado';
-        if (mode==='Consumidor Final') {
-          priceOriginal.textContent='—'; priceDescuento.textContent='—';
-          priceOriginal.style.display='block'; priceDescuento.style.display='block';
-        } else {
-          priceMayorista.textContent='—'; priceMayorista.style.display='block';
-        }
+          if (mode==='Consumidor Final') {
+            priceOriginal.textContent='—';
+            priceOriginal.style.display='block';
+          } else {
+            priceMayorista.textContent='—'; priceMayorista.style.display='block';
+          }
       }
     } catch(e) {
+      setSystemState('error');
       productName.textContent='Error de conexión';
-      if (mode==='Consumidor Final') {
-        priceOriginal.textContent='Error'; priceDescuento.textContent='Error';
-        priceOriginal.style.display='block'; priceDescuento.style.display='block'; discountDisplay.style.display='none';
-      } else {
-        priceMayorista.textContent='Error'; priceMayorista.style.display='block';
-      }
+        if (mode==='Consumidor Final') {
+          priceOriginal.textContent='Error';
+          priceOriginal.style.display='block';
+        } else {
+          priceMayorista.textContent='Error'; priceMayorista.style.display='block';
+        }
       console.error(e);
     }
   }
   // Reinicia el modo y oculta el selector al hacer clic en el encabezado  
   mainHeader.addEventListener('click', () => {
   mode = '';
+  inputMode = 'manual';
   code = '';
-  codeDisplay.textContent = '';
+  barcodeBuffer = '';
+  barcodeInput.value = '';
   clearFields();
+  app.classList.remove('processing', 'success', 'error', 'scanner-ready');
   app.style.display = 'none';
   mainHeader.style.display = 'none';
   modeSelector.classList.remove('hidden');
