@@ -253,8 +253,9 @@
         <div id="priceMayorista"></div>
       </div>
     </div>
+      <!-- <div id="discountDisplay">10% de descuento</div> -->
     <div id="inputSection">
-  <input type="text" id="barcodeInput" placeholder="Escanee código de barras o ingrese manualmente..." maxlength="13" autocomplete="off">
+      <input type="text" id="barcodeInput" placeholder="Escanee código de barras o ingrese manualmente..." maxlength="13" autocomplete="off" readonly style="caret-color: transparent;">
     </div>
     <div id="keypad">
       <button onclick="press('1')">1</button>
@@ -397,8 +398,8 @@ function restart() {
     
     setSystemState('processing');
     
-    // Para búsqueda, usar los últimos 5 dígitos si el código es más largo
-    code = cleanCode.length > 5 ? cleanCode.slice(-5) : cleanCode;
+    // Usar el código completo para búsqueda
+    code = cleanCode;
     
     barcodeInput.value = cleanCode;
     clearFields();
@@ -504,7 +505,17 @@ function restart() {
     try {
       const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
       const data = await resp.json();
-      const row = (data.values||[]).find(r => r[8] === code);
+      
+      // Búsqueda flexible: primero código completo, luego últimos 5 dígitos
+      let row = (data.values||[]).find(r => r[8] === code);
+      
+      // Si no encuentra con código completo y el código tiene más de 5 dígitos, 
+      // intentar con los últimos 5 dígitos
+      if (!row && code.length > 5) {
+        const shortCode = code.slice(-5);
+        row = (data.values||[]).find(r => r[8] === shortCode);
+      }
+      
       if (row) {
         setSystemState('success');
         productName.textContent = row[3]||'';
