@@ -274,6 +274,27 @@
   </div>
 <script>
 
+// Reconexión automática si se pierde la conexión
+function handleConnectionChange() {
+  if (navigator.onLine) {
+    // Si vuelve la conexión y la app estaba offline, recargar
+    if (document.body.classList.contains('offline')) {
+      location.reload();
+    }
+  } else {
+    // Si se pierde la conexión, marcar el estado
+    document.body.classList.add('offline');
+  }
+}
+
+window.addEventListener('online', handleConnectionChange);
+window.addEventListener('offline', handleConnectionChange);
+
+// Marcar estado offline si la página carga sin conexión
+if (!navigator.onLine) {
+  document.body.classList.add('offline');
+}
+
   const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
   const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
   const RANGO = 'PriceDisplay!A2:I';
@@ -505,21 +526,30 @@ function restart() {
     try {
       const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
       const data = await resp.json();
-      
-      // Búsqueda flexible: primero código completo, luego últimos 5 dígitos
-      let row = (data.values||[]).find(r => r[8] === code);
-      
-      // Si no encuentra con código completo y el código tiene más de 5 dígitos, 
-      // intentar con los últimos 5 dígitos
+
+      // Buscar en cada código separado por coma en la columna 9
+      let row = (data.values||[]).find(r => {
+        if (!r[8]) return false;
+        // Separar por coma y quitar espacios
+        const codes = r[8].split(',').map(c => c.trim());
+        // Buscar coincidencia exacta
+        return codes.includes(code);
+      });
+
+      // Si no encuentra, intentar con los últimos 5 dígitos
       if (!row && code.length > 5) {
         const shortCode = code.slice(-5);
-        row = (data.values||[]).find(r => r[8] === shortCode);
+        row = (data.values||[]).find(r => {
+          if (!r[8]) return false;
+          const codes = r[8].split(',').map(c => c.trim());
+          return codes.includes(shortCode);
+        });
       }
-      
+
       if (row) {
         setSystemState('success');
         productName.textContent = row[3]||'';
-        
+
         // Mostrar imagen del producto (columna B - primer link)
         if (row[1]) {
           const imageLinks = row[1].split(',');
@@ -529,37 +559,37 @@ function restart() {
             productImg.style.display = 'block';
           }
         }
-        
-          if (mode=== 'Consumidor Final') {
-            priceOriginal.textContent = row[4]||'Sin precio';
-            priceOriginal.style.display='block';
-          } else {
-            priceMayorista.textContent = row[5]||'Sin precio';
-            priceMayorista.style.display = 'block';
-          }
-          
-          // Ocultar teclado y mostrar botón ancho cuando se encuentre un producto
-          keypad.classList.add('hidden');
-          newFullWidth.style.display = 'block';
+
+        if (mode=== 'Consumidor Final') {
+          priceOriginal.textContent = row[4]||'Sin precio';
+          priceOriginal.style.display='block';
+        } else {
+          priceMayorista.textContent = row[5]||'Sin precio';
+          priceMayorista.style.display = 'block';
+        }
+
+        // Ocultar teclado y mostrar botón ancho cuando se encuentre un producto
+        keypad.classList.add('hidden');
+        newFullWidth.style.display = 'block';
       } else {
         setSystemState('error');
         productName.textContent = 'Artículo no encontrado';
-          if (mode==='Consumidor Final') {
-            priceOriginal.textContent='—';
-            priceOriginal.style.display='block';
-          } else {
-            priceMayorista.textContent='—'; priceMayorista.style.display='block';
-          }
+        if (mode==='Consumidor Final') {
+          priceOriginal.textContent='—';
+          priceOriginal.style.display='block';
+        } else {
+          priceMayorista.textContent='—'; priceMayorista.style.display='block';
+        }
       }
     } catch(e) {
       setSystemState('error');
       productName.textContent='Error de conexión';
-        if (mode==='Consumidor Final') {
-          priceOriginal.textContent='Error';
-          priceOriginal.style.display='block';
-        } else {
-          priceMayorista.textContent='Error'; priceMayorista.style.display='block';
-        }
+      if (mode==='Consumidor Final') {
+        priceOriginal.textContent='Error';
+        priceOriginal.style.display='block';
+      } else {
+        priceMayorista.textContent='Error'; priceMayorista.style.display='block';
+      }
       console.error(e);
     }
   }
