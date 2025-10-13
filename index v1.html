@@ -18,16 +18,49 @@
       overflow: hidden;
       position: relative;
     }
+    /* Selector inicial */
+    #modeSelector {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f9f9f9;
+      transition: opacity 0.5s ease;
+      z-index: 10;
+    }
+    #modeSelector.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #modeSelector button {
+      width: 300px;
+      height: 120px;
+      font-size: 30px;
+      margin: 15px 0;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #modeSelector button.active {
+      background-color: #007bff;
+      color: #fff;
+    }
     /* Contenedor principal */
     #app {
-      display: flex;
+      display: none;
       flex: 1;
       flex-direction: column;
       padding-top: 10px;
     }
     /* Header mostrando modo */
     #mainHeader {
-      display: flex;
+      display: none;
       justify-content: center;
       align-items: center;
       padding: 10px;
@@ -151,6 +184,7 @@
       padding: 0 5vh;
     }
     /* Precios ocultos por defecto */
+    #priceOriginal,
     #priceMayorista {
       display: none;
       font-weight: bold;
@@ -201,14 +235,21 @@
   </style>
 </head>
 <body>
+  <header id="modeSelector">
+     <button id="btnMayorista">Mayorista</button>
+     <button id="btnConsumidor">Consumidor Final</button>
+  </header>
   <div id="app">
-    <header id="mainHeader">Mayorista</header>
+    <header id="mainHeader"></header>
     <div id="productDisplay"><span id="productName"></span></div>
     <div id="productImage">
       <img id="productImg" src="" alt="" style="width: 300px; height: 300px; object-fit: cover; border-radius: 8px; display: none;">
     </div>
     <div id="pricesDisplay">
       <div class="price-item">
+        <div id="priceRow">
+          <div id="priceOriginal"></div>
+        </div>
         <div id="priceMayorista"></div>
       </div>
     </div>
@@ -259,20 +300,26 @@ if (!navigator.onLine) {
   const RANGO = 'PriceDisplay!A2:I';
   
   let code = '';
-  let mode = 'Mayorista'; // Modo fijo: Mayorista
+  let mode = '';
   let inactivityTimer = null;
   let inputMode = 'manual'; // 'manual' o 'scanner'
   let barcodeBuffer = '';
   let lastKeyTime = 0;
   
+  const priceOriginal = document.getElementById('priceOriginal');
   const priceMayorista = document.getElementById('priceMayorista');
   const productName = document.getElementById('productName');
   const productImg = document.getElementById('productImg');
+  const btnC = document.getElementById('btnConsumidor');
+  const btnM = document.getElementById('btnMayorista');
+  const modeSelector = document.getElementById('modeSelector');
   const app = document.getElementById('app');
   const mainHeader = document.getElementById('mainHeader');
   const barcodeInput = document.getElementById('barcodeInput');
   const keypad = document.getElementById('keypad');
   const newFullWidth = document.getElementById('newFullWidth');
+  btnC.addEventListener('click', () => selectMode('Consumidor Final'));
+  btnM.addEventListener('click', () => selectMode('Mayorista'));
   
   // Eventos del input manual
   barcodeInput.addEventListener('input', handleManualInput);
@@ -289,20 +336,28 @@ if (!navigator.onLine) {
   });
   
   // Listener global para detectar códigos de barras
-  document.addEventListener('keydown', handleBarcodeInput);
-  
-  // Inicializar la aplicación al cargar
-  window.addEventListener('DOMContentLoaded', () => {
-    barcodeInput.focus();
-    setTimeout(() => barcodeInput.focus(), 100);
-  });
-
-  function restart() {
-    code = '';
-    barcodeInput.value = '';
-    barcodeBuffer = '';
-    clearFields();
+  document.addEventListener('keydown', handleBarcodeInput);  function selectMode(selected) {
+    mode = selected;
+    btnC.classList.toggle('active', mode === 'Consumidor Final');
+    btnM.classList.toggle('active', mode === 'Mayorista');
+    mainHeader.textContent = mode;
+    mainHeader.style.display = 'flex';
+    modeSelector.classList.add('hidden');
+    setTimeout(() => { 
+      modeSelector.style.display = 'none'; 
+      app.style.display = 'flex';
+      barcodeInput.focus();
+      setTimeout(() => barcodeInput.focus(), 100);
+    }, 500);
+    restart();
   }
+
+function restart() {
+  code = '';
+  barcodeInput.value = '';
+  barcodeBuffer = '';
+  clearFields();
+}
 
 
   
@@ -455,7 +510,9 @@ if (!navigator.onLine) {
   }
 
   function clearFields() {
+    priceOriginal.style.display = 'none';
     priceMayorista.style.display = 'none';
+    priceOriginal.textContent = '';
     priceMayorista.textContent = '';
     productName.textContent = '';
     productImg.style.display = 'none';
@@ -503,9 +560,13 @@ if (!navigator.onLine) {
           }
         }
 
-        // Siempre mostrar precio mayorista
-        priceMayorista.textContent = row[5]||'Sin precio';
-        priceMayorista.style.display = 'block';
+        if (mode=== 'Consumidor Final') {
+          priceOriginal.textContent = row[4]||'Sin precio';
+          priceOriginal.style.display='block';
+        } else {
+          priceMayorista.textContent = row[5]||'Sin precio';
+          priceMayorista.style.display = 'block';
+        }
 
         // Ocultar teclado y mostrar botón ancho cuando se encuentre un producto
         keypad.classList.add('hidden');
@@ -513,20 +574,41 @@ if (!navigator.onLine) {
       } else {
         setSystemState('error');
         productName.textContent = 'Artículo no encontrado';
-        priceMayorista.textContent='—'; 
-        priceMayorista.style.display='block';
+        if (mode==='Consumidor Final') {
+          priceOriginal.textContent='—';
+          priceOriginal.style.display='block';
+        } else {
+          priceMayorista.textContent='—'; priceMayorista.style.display='block';
+        }
       }
     } catch(e) {
       setSystemState('error');
       productName.textContent='Error de conexión';
-      priceMayorista.textContent='Error'; 
-      priceMayorista.style.display='block';
+      if (mode==='Consumidor Final') {
+        priceOriginal.textContent='Error';
+        priceOriginal.style.display='block';
+      } else {
+        priceMayorista.textContent='Error'; priceMayorista.style.display='block';
+      }
       console.error(e);
     }
   }
-  
-  // Registro del service worker
-  if ('serviceWorker' in navigator) {
+  // Reinicia el modo y oculta el selector al hacer clic en el encabezado  
+  mainHeader.addEventListener('click', () => {
+  mode = '';
+  inputMode = 'manual';
+  code = '';
+  barcodeBuffer = '';
+  barcodeInput.value = '';
+  clearFields();
+  app.classList.remove('processing', 'success', 'error', 'scanner-ready');
+  app.style.display = 'none';
+  mainHeader.style.display = 'none';
+  modeSelector.classList.remove('hidden');
+  modeSelector.style.display = 'flex';
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+    });
+      if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
       }
 
