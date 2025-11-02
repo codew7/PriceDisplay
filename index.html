@@ -2,549 +2,672 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Consulta de Precios</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <title>Buscador de Precios</title>
   <link rel="icon" href="faviconnegro.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
     body {
-      height: 85vh;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      background-color: #f9f9f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #ffffff;
       color: #333;
       overflow: hidden;
-      position: relative;
-    }
-    /* Contenedor principal */
-    #app {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      padding-top: 10px;
-    }
-    /* Header mostrando modo */
-    #mainHeader {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px;
-      background-color: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-    }
-    #productDisplay {
-      height: 8vh;
-      margin: 5px;
-      padding: 5px;
-      background-color: #fff;
-      border-radius: 8px;
-      font-size: calc(2vw + 2vh);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    #productImage {
-      margin: 5px;
-      padding: 5px;
-      background-color: #fff;
-      border-radius: 8px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    #keypad.hidden {
-      display: none;
-    }
-    #newFullWidth {
-      display: none;
-      width: 100%;
-      margin: 10px 0;
-      padding: 20px;
-      font-size: 30px;
-      font-family: Arial, sans-serif;
-      background-color: #fff;
-      color: #333;
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      cursor: pointer;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    #newFullWidth:active {
-      background-color: #007bff;
-      color: #fff;
-    }
-    #inputSection {
-      margin: 5px;
-      padding: 10px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    #barcodeInput {
-      width: 100%;
-      height: 50px;
-      font-size: 20px;
-      padding: 10px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 10px;
-      outline: none;
-      transition: border-color 0.3s;
-      font-weight: bold;
-    }
-    #barcodeInput:focus {
-      border-color: #007bff;
-      box-shadow: 0 0 5px rgba(0,123,255,0.3);
-    }
-    /* Estados del sistema */
-    .processing #barcodeInput {
-      border-color: #ffc107;
-      background-color: #fff3cd;
-    }
-    .success #barcodeInput {
-      border-color: #28a745;
-      background-color: #d4edda;
-    }
-    .error #barcodeInput {
-      border-color: #dc3545;
-      background-color: #f8d7da;
-    }
-    .scanner-ready {
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-    #pricesDisplay {
-      height: 10vh;
-      margin: 5px;
-      padding: 5px;
-      background-color: #fff;
-      border-radius: 8px;
-      overflow-wrap: break-word;
-      font-size: calc(3vw + 3vh);
-      color: green;
-      text-align: center;
-    }
-    .price-item {
+      height: 100vh;
+      width: 100vw;
+      max-width: 800px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      height: 100%;
-      justify-content: center;
-    }
-    /* Fila de precios uno al lado del otro */
-    #priceRow {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      padding: 0 5vh;
-    }
-    /* Precios ocultos por defecto */
-    #priceMayorista {
-      display: none;
-      font-weight: bold;
-        width: 100%;
-        text-align: center;
-    }
-    #discountDisplay {
-      display: none;
-      text-align: right;
-      font-size: calc(1vw + 1vh);
-      font-weight: bold;
-      color: #00d312;
-      margin: 5px 10px;
-      padding: 0 6vh;
-    }
-    #keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-gap: 5px;
-      padding: 5px;
-      flex-grow: 1;
-    }
-    #keypad button {
-      font-size: 30px;
-      padding: 5px;
-      border: none;
-      border-radius: 8px;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      cursor: pointer;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    #keypad button:active {
-      background-color: #007bff;
-      color: #fff;
-    }
-    #new {
-      grid-column: 2 / span 2;
-      background-color: #e0e0e0;
-      color: #333;
-    }
-    #new:active {
-      background-color: #007bff;
-      color: #fff;
+      touch-action: manipulation;
     }
 
-    
+    /* Sección de búsqueda */
+    #searchSection {
+      background-color: #fff;
+      margin: 10px 12px;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    #searchInput {
+      width: 100%;
+      height: 55px;
+      font-size: 18px;
+      padding: 0 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      text-align: center;
+      outline: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      background-color: #f8f9fa;
+    }
+
+    #searchInput:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      background-color: #fff;
+    }
+
+    #searchInput::placeholder {
+      color: #999;
+      font-weight: 400;
+    }
+
+    /* Contenedor de resultados */
+    #resultsContainer {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px 8px;
+      margin-bottom: 0;
+      min-height: 0;
+    }
+
+    #resultsContainer::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #resultsContainer::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+    }
+
+    #resultsContainer::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.3);
+      border-radius: 10px;
+    }
+
+    #resultsContainer::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.5);
+    }
+
+    /* Mensaje de estado */
+    #statusMessage {
+      text-align: center;
+      padding: 30px 20px 20px;
+      color: #3a3a3a;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    #statusMessage.empty {
+      color: #3a3a3a;
+    }
+
+    #statusMessage.searching {
+      color: #3a3a3a;
+    }
+
+    /* Logo en status */
+    #statusLogo {
+      width: 350px;
+      height: auto;
+      margin-top: 140px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Card de resultado */
+    .result-card {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: slideIn 0.3s ease;
+    }
+
+    .result-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-image {
+      flex-shrink: 0;
+      width: 110px;
+      height: 110px;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .result-image.no-image {
+      background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+      color: #999;
+      font-size: 14px;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .result-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .result-code {
+      font-size: 16px;
+      color: #383a44;
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .result-name {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .result-price {
+      font-size: 42px;
+      color: #28a745;
+      font-weight: 700;
+    }
+
+    /* Teclado virtual */
+    #virtualKeyboard {
+      background-color: #4a4a4a;
+      padding: 12px 10px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+      z-index: 200;
+      flex-shrink: 0;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+
+    .keyboard-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .key {
+      background-color: #6a6a6a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 8px;
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 42px;
+      height: 42px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      user-select: none;
+      touch-action: manipulation;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .key:active {
+      background-color: #8a8a8a;
+      transform: scale(0.95);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .key.wide {
+      flex: 1;
+      max-width: 200px;
+    }
+
+    .key.space {
+      flex: 2;
+    }
+
+    .key.new-search {
+      background-color: #798d1e;
+      font-size: 13px;
+      padding: 12px 15px;
+      white-space: nowrap;
+    }
+
+    .key.new-search:active {
+      background-color: #b2ca44;
+    }
+
+    .key.backspace {
+      background-color: #f33737;
+      font-size: 18px;
+    }
+
+    .key.backspace:active {
+      background-color: #df5252;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Ocultar teclado del sistema */
+    input[readonly] {
+      cursor: pointer;
+    }
+
+    /* Estado de conexión */
+    .offline-banner {
+      background-color: #e74c3c;
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      font-weight: 600;
+      display: none;
+    }
+
+    body.offline .offline-banner {
+      display: block;
+    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <header id="mainHeader">Distribuidora HomePoint</header>
-    <div id="productDisplay"><span id="productName"></span></div>
-    <div id="productImage">
-      <img id="productImg" src="" alt="" style="width: 300px; height: 300px; object-fit: cover; border-radius: 8px; display: none;">
+  <div class="offline-banner">Sin conexión a Internet</div>
+
+  <section id="searchSection">
+    <input 
+      type="text" 
+      id="searchInput" 
+      placeholder="Buscar por código o nombre..." 
+      autocomplete="off"
+      readonly
+    >
+  </section>
+
+  <div id="resultsContainer">
+    <div id="statusMessage" class="empty">
+      Ingrese código o nombre del producto
+      <br>
+      <img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint">
     </div>
-    <div id="pricesDisplay">
-      <div class="price-item">
-        <div id="priceMayorista"></div>
-      </div>
-    </div>
-      <!-- <div id="discountDisplay">10% de descuento</div> -->
-    <div id="inputSection">
-      <input type="text" id="barcodeInput" placeholder="Escanee código de barras o ingrese manualmente..." maxlength="13" autocomplete="off" readonly style="caret-color: transparent;">
-    </div>
-    <div id="keypad">
-      <button onclick="press('1')">1</button>
-      <button onclick="press('2')">2</button>
-      <button onclick="press('3')">3</button>
-      <button onclick="press('4')">4</button>
-      <button onclick="press('5')">5</button>
-      <button onclick="press('6')">6</button>
-      <button onclick="press('7')">7</button>
-      <button onclick="press('8')">8</button>
-      <button onclick="press('9')">9</button>
-      <button onclick="press('0')">0</button>
-      <button id="new" onclick="restart()">Nuevo</button>
-    </div>
-    <button id="newFullWidth" onclick="restart()">Nuevo</button>
   </div>
-<script>
 
-// Reconexión automática si se pierde la conexión
-function handleConnectionChange() {
-  if (navigator.onLine) {
-    // Si vuelve la conexión y la app estaba offline, recargar
-    if (document.body.classList.contains('offline')) {
-      location.reload();
-    }
-  } else {
-    // Si se pierde la conexión, marcar el estado
-    document.body.classList.add('offline');
-  }
-}
+  <div id="virtualKeyboard">
+    <div class="keyboard-row">
+      <button class="key" data-key="1">1</button>
+      <button class="key" data-key="2">2</button>
+      <button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button>
+      <button class="key" data-key="5">5</button>
+      <button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button>
+      <button class="key" data-key="8">8</button>
+      <button class="key" data-key="9">9</button>
+      <button class="key" data-key="0">0</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key" data-key="Q">Q</button>
+      <button class="key" data-key="W">W</button>
+      <button class="key" data-key="E">E</button>
+      <button class="key" data-key="R">R</button>
+      <button class="key" data-key="T">T</button>
+      <button class="key" data-key="Y">Y</button>
+      <button class="key" data-key="U">U</button>
+      <button class="key" data-key="I">I</button>
+      <button class="key" data-key="O">O</button>
+      <button class="key" data-key="P">P</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key" data-key="A">A</button>
+      <button class="key" data-key="S">S</button>
+      <button class="key" data-key="D">D</button>
+      <button class="key" data-key="F">F</button>
+      <button class="key" data-key="G">G</button>
+      <button class="key" data-key="H">H</button>
+      <button class="key" data-key="J">J</button>
+      <button class="key" data-key="K">K</button>
+      <button class="key" data-key="L">L</button>
+      <button class="key" data-key="Ñ">Ñ</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key" data-key="Z">Z</button>
+      <button class="key" data-key="X">X</button>
+      <button class="key" data-key="C">C</button>
+      <button class="key" data-key="V">V</button>
+      <button class="key" data-key="B">B</button>
+      <button class="key" data-key="N">N</button>
+      <button class="key" data-key="M">M</button>
+      <button class="key backspace" data-key="Backspace">⌫</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key space" data-key=" ">ESPACIO</button>
+      <button class="key new-search" onclick="newSearch()">NUEVA BÚSQUEDA</button>
+    </div>
+  </div>
 
-window.addEventListener('online', handleConnectionChange);
-window.addEventListener('offline', handleConnectionChange);
+  <script>
+    // Configuración de la API
+    const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
+    const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
+    const RANGO = 'PriceDisplay!A2:I';
+    
+    // Variables globales
+    let allData = [];
+    let searchTimer = null;
+    let isLoading = false;
 
-// Marcar estado offline si la página carga sin conexión
-if (!navigator.onLine) {
-  document.body.classList.add('offline');
-}
+    // Elementos del DOM
+    const searchInput = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const statusMessage = document.getElementById('statusMessage');
 
-  const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
-  const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
-  const RANGO = 'PriceDisplay!A2:I';
-  
-  let code = '';
-  let mode = 'Mayorista'; // Modo fijo: Mayorista
-  let inactivityTimer = null;
-  let inputMode = 'manual'; // 'manual' o 'scanner'
-  let barcodeBuffer = '';
-  let lastKeyTime = 0;
-  
-  const priceMayorista = document.getElementById('priceMayorista');
-  const productName = document.getElementById('productName');
-  const productImg = document.getElementById('productImg');
-  const app = document.getElementById('app');
-  const mainHeader = document.getElementById('mainHeader');
-  const barcodeInput = document.getElementById('barcodeInput');
-  const keypad = document.getElementById('keypad');
-  const newFullWidth = document.getElementById('newFullWidth');
-  
-  // Eventos del input manual
-  barcodeInput.addEventListener('input', handleManualInput);
-  barcodeInput.addEventListener('keypress', handleManualKeypress);
+    // Prevenir teclado del sistema
+    searchInput.addEventListener('focus', (e) => {
+      e.target.blur();
+      e.preventDefault();
+    });
 
-  // Mantener el foco en el campo de ingreso de código
-  function keepBarcodeInputFocus() {
-    barcodeInput.focus();
-  }
-
-  // Reforzar el foco en eventos comunes
-  ['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
-    document.addEventListener(evt, keepBarcodeInputFocus, true);
-  });
-  
-  // Listener global para detectar códigos de barras
-  document.addEventListener('keydown', handleBarcodeInput);
-  
-  // Inicializar la aplicación al cargar
-  window.addEventListener('DOMContentLoaded', () => {
-    barcodeInput.focus();
-    setTimeout(() => barcodeInput.focus(), 100);
-  });
-
-  function restart() {
-    code = '';
-    barcodeInput.value = '';
-    barcodeBuffer = '';
-    clearFields();
-  }
-
-
-  
-  function handleManualInput(e) {
-    const value = e.target.value.replace(/[^0-9]/g, ''); // Solo números
-    e.target.value = value;
-    
-    if (value.length > 0) {
-      code = value;
-      clearFields();
-    }
-  }
-  
-  function handleManualKeypress(e) {
-    if (e.key === 'Enter' && barcodeInput.value.length >= 4) {
-      processBarcode(barcodeInput.value);
-    }
-  }
-  
-  function handleBarcodeInput(e) {
-    if (!mode) return;
-    
-    const currentTime = Date.now();
-    const timeDiff = currentTime - lastKeyTime;
-    
-    // Si el tiempo entre teclas es muy corto (< 50ms), probablemente es un escáner
-    if (timeDiff > 100 && barcodeBuffer.length > 0) {
-      barcodeBuffer = ''; // Reiniciar si hay mucha pausa
-    }
-    
-    lastKeyTime = currentTime;
-    
-    if (e.key === 'Enter') {
-      if (barcodeBuffer.length >= 4) {
-        processBarcode(barcodeBuffer);
-      }
-      barcodeBuffer = '';
-    } else if (e.key.match(/[0-9]/)) {
-      barcodeBuffer += e.key;
-      
-      // Mostrar progreso en el input
-      barcodeInput.value = barcodeBuffer;
-      
-      // Auto-procesar si alcanza longitud máxima esperada
-      if (barcodeBuffer.length >= 13) {
-        processBarcode(barcodeBuffer);
-        barcodeBuffer = '';
-      }
-    }
-  }
-  
-  function processBarcode(barcodeValue) {
-    const cleanCode = barcodeValue.replace(/[^\d]/g, '');
-    
-    if (!validateBarcode(barcodeValue)) {
-      showError('Código de barras inválido');
-      return;
-    }
-    
-    setSystemState('processing');
-    
-    // Usar el código completo para búsqueda
-    code = cleanCode;
-    
-    barcodeInput.value = cleanCode;
-    clearFields();
-    
-    fetchData();
-  }
-  
-  function validateBarcode(barcode) {
-    // Eliminar espacios y caracteres no numéricos
-    const cleanCode = barcode.replace(/[^\d]/g, '');
-    
-    // Validaciones para diferentes tipos de códigos de barras
-    const validLengths = [4, 5, 8, 12, 13, 14]; // Longitudes comunes
-    
-    if (!validLengths.includes(cleanCode.length)) {
-      return false;
-    }
-    
-    // Validación básica EAN-13 (si tiene 13 dígitos)
-    if (cleanCode.length === 13) {
-      return validateEAN13(cleanCode);
-    }
-    
-    // Para otros códigos, solo verificar que sean numéricos
-    return /^\d+$/.test(cleanCode);
-  }
-  
-  function validateEAN13(code) {
-    if (code.length !== 13) return false;
-    
-    let sum = 0;
-    for (let i = 0; i < 12; i++) {
-      const digit = parseInt(code[i]);
-      sum += (i % 2 === 0) ? digit : digit * 3;
-    }
-    
-    const checkDigit = (10 - (sum % 10)) % 10;
-    return checkDigit === parseInt(code[12]);
-  }
-  
-  function showError(message) {
-    setSystemState('error');
-    productName.textContent = message;
-    setTimeout(() => {
-      if (productName.textContent === message) {
-        productName.textContent = '';
-        setSystemState('ready');
-      }
-    }, 3000);
-  }
-  
-  function setSystemState(state) {
-    // Remover clases anteriores
-    app.classList.remove('processing', 'success', 'error', 'scanner-ready');
-    
-    switch(state) {
-      case 'processing':
-        app.classList.add('processing');
-        break;
-      case 'success':
-        app.classList.add('success');
-        setTimeout(() => setSystemState('ready'), 2000);
-        break;
-      case 'error':
-        app.classList.add('error');
-        break;
-      case 'ready':
-        if (inputMode === 'scanner') {
-          app.classList.add('scanner-ready');
+    // Manejo de conexión
+    function handleConnectionChange() {
+      if (navigator.onLine) {
+        document.body.classList.remove('offline');
+        if (allData.length === 0) {
+          loadData();
         }
-        break;
+      } else {
+        document.body.classList.add('offline');
+      }
     }
-  }
 
-  function press(num) {
-    if (!mode) return;
-    
-    if (code.length >= 13) return; // Permitir códigos más largos
-    code += num;
-    barcodeInput.value = code;
-    clearFields();
-    
-    // Auto-buscar cuando alcance 5 dígitos
-    if (code.length >= 5) {
-      processBarcode(code);
+    window.addEventListener('online', handleConnectionChange);
+    window.addEventListener('offline', handleConnectionChange);
+
+    // Cargar datos al inicio
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!navigator.onLine) {
+        document.body.classList.add('offline');
+        showStatus('Sin conexión a Internet', 'empty');
+      } else {
+        loadData();
+      }
+    });
+
+    // Cargar datos del Google Sheets
+    async function loadData() {
+      if (isLoading) return;
+      
+      isLoading = true;
+      showStatus('<div class="spinner"></div>', 'searching');
+
+      try {
+        const response = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar datos');
+        }
+
+        const data = await response.json();
+        allData = data.values || [];
+        
+        if (searchInput.value.trim()) {
+          performSearch(searchInput.value.trim());
+        } else {
+          showStatus('Ingrese código o nombre del producto', 'empty');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus('❌ Error al cargar los datos. Verifique su conexión.', 'empty');
+      } finally {
+        isLoading = false;
+      }
     }
-  }
 
-  function clearFields() {
-    priceMayorista.style.display = 'none';
-    priceMayorista.textContent = '';
-    productName.textContent = '';
-    productImg.style.display = 'none';
-    productImg.src = '';
-    // Mostrar teclado y ocultar botón ancho
-    keypad.classList.remove('hidden');
-    newFullWidth.style.display = 'none';
-  }
+    // Manejar clics en el teclado virtual
+    document.querySelectorAll('.key').forEach(key => {
+      key.addEventListener('click', (e) => {
+        const keyValue = e.target.dataset.key;
+        
+        if (!keyValue) return;
 
-  async function fetchData() {
-    try {
-      const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGO}?key=${API_KEY}`);
-      const data = await resp.json();
+        if (keyValue === 'Backspace') {
+          searchInput.value = searchInput.value.slice(0, -1);
+        } else {
+          searchInput.value += keyValue;
+        }
 
-      // Buscar en cada código separado por coma en la columna 9
-      let row = (data.values||[]).find(r => {
-        if (!r[8]) return false;
-        // Separar por coma y quitar espacios
-        const codes = r[8].split(',').map(c => c.trim());
-        // Buscar coincidencia exacta
-        return codes.includes(code);
+        handleSearchInput();
+      });
+    });
+
+    // Manejar entrada de búsqueda
+    function handleSearchInput() {
+      clearTimeout(searchTimer);
+      
+      const query = searchInput.value.trim();
+
+      if (query.length === 0) {
+        clearResults();
+        showStatus('Ingrese código o nombre del producto', 'empty');
+        return;
+      }
+
+      showStatus('Buscando...', 'searching');
+      
+      searchTimer = setTimeout(() => {
+        performSearch(query);
+      }, 300);
+    }
+
+    // Realizar búsqueda
+    function performSearch(query) {
+      if (allData.length === 0) {
+        loadData();
+        return;
+      }
+
+      const lowerQuery = query.toLowerCase();
+      
+      // Buscar en columnas C (índice 2), D (3), G (6), H (7)
+      const results = allData.filter(row => {
+        return (
+          (row[2] && row[2].toString().toLowerCase().includes(lowerQuery)) ||
+          (row[3] && row[3].toString().toLowerCase().includes(lowerQuery)) ||
+          (row[6] && row[6].toString().toLowerCase().includes(lowerQuery)) ||
+          (row[7] && row[7].toString().toLowerCase().includes(lowerQuery))
+        );
       });
 
-      // Si no encuentra, intentar con los últimos 5 dígitos
-      if (!row && code.length > 5) {
-        const shortCode = code.slice(-5);
-        row = (data.values||[]).find(r => {
-          if (!r[8]) return false;
-          const codes = r[8].split(',').map(c => c.trim());
-          return codes.includes(shortCode);
-        });
+      displayResults(results);
+    }
+
+    // Mostrar resultados
+    function displayResults(results) {
+      clearResults();
+
+      if (results.length === 0) {
+        showStatus('😕 No se encontraron resultados', 'empty');
+        return;
       }
 
-      if (row) {
-        setSystemState('success');
-        productName.textContent = row[3]||'';
+      hideStatus();
 
-        // Mostrar imagen del producto (columna B - primer link)
-        if (row[1]) {
-          const imageLinks = row[1].split(',');
-          const firstImageLink = imageLinks[0].trim();
-          if (firstImageLink) {
-            productImg.src = firstImageLink;
-            productImg.style.display = 'block';
-          }
+      results.forEach(row => {
+        const card = createResultCard(row);
+        resultsContainer.appendChild(card);
+      });
+    }
+
+    // Crear tarjeta de resultado
+    function createResultCard(row) {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+
+      // Imagen
+      const imageDiv = document.createElement('div');
+      imageDiv.className = 'result-image';
+      
+      if (row[1]) {
+        const imageLinks = row[1].split(',');
+        const firstImageLink = imageLinks[0].trim();
+        
+        if (firstImageLink) {
+          const img = document.createElement('img');
+          img.src = firstImageLink;
+          img.alt = row[3] || 'Producto';
+          img.onerror = () => {
+            imageDiv.classList.add('no-image');
+            imageDiv.textContent = 'Sin imagen';
+          };
+          imageDiv.appendChild(img);
+        } else {
+          imageDiv.classList.add('no-image');
+          imageDiv.textContent = 'Sin imagen';
         }
-
-        // Siempre mostrar precio mayorista
-        priceMayorista.textContent = row[5]||'Sin precio';
-        priceMayorista.style.display = 'block';
-
-        // Ocultar teclado y mostrar botón ancho cuando se encuentre un producto
-        keypad.classList.add('hidden');
-        newFullWidth.style.display = 'block';
       } else {
-        setSystemState('error');
-        productName.textContent = 'Artículo no encontrado';
-        priceMayorista.textContent='—'; 
-        priceMayorista.style.display='block';
-      }
-    } catch(e) {
-      setSystemState('error');
-      productName.textContent='Error de conexión';
-      priceMayorista.textContent='Error'; 
-      priceMayorista.style.display='block';
-      console.error(e);
-    }
-  }
-  
-  // Registro del service worker
-  if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./service-worker.js').catch(err=>console.error('SW error:',err));
+        imageDiv.classList.add('no-image');
+        imageDiv.textContent = 'Sin imagen';
       }
 
-  // Manejo de la inactividad
-  function resetInactivityTimer() {
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-      location.reload();
-    }, 120000); // 120 segundos
+      // Información del producto
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'result-info';
+
+      // Código del producto (columna C - índice 2 o columna G - índice 6)
+      const code = row[2] || row[6] || 'S/C';
+      const codeDiv = document.createElement('div');
+      codeDiv.className = 'result-code';
+      codeDiv.textContent = `Código: ${code}`;
+
+      // Nombre del producto (columna D - índice 3)
+      const name = row[3] || 'Sin nombre';
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'result-name';
+      nameDiv.textContent = name;
+
+      // Precio (columna F - índice 5, precio mayorista)
+      const price = row[5] || 'Consultar';
+      const priceDiv = document.createElement('div');
+      priceDiv.className = 'result-price';
+      priceDiv.textContent = price;
+
+      infoDiv.appendChild(codeDiv);
+      infoDiv.appendChild(nameDiv);
+      infoDiv.appendChild(priceDiv);
+
+      card.appendChild(imageDiv);
+      card.appendChild(infoDiv);
+
+      return card;
     }
 
-// Reinicia el timer en cada interacción relevante
-['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt => {
-  document.addEventListener(evt, resetInactivityTimer, true);
-});
+    // Mostrar mensaje de estado
+    function showStatus(message, className) {
+      // Solo mostrar logo si no es mensaje de búsqueda o spinner
+      if (className === 'searching' || message.includes('spinner') || message.includes('Buscando')) {
+        statusMessage.innerHTML = message;
+      } else {
+        statusMessage.innerHTML = message + '<br><img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint">';
+      }
+      statusMessage.className = className;
+      statusMessage.style.display = 'block';
+    }
 
-// Inicia el timer al cargar la página
-resetInactivityTimer();
-</script>
+    // Ocultar mensaje de estado
+    function hideStatus() {
+      statusMessage.style.display = 'none';
+    }
+
+    // Limpiar resultados
+    function clearResults() {
+      const cards = resultsContainer.querySelectorAll('.result-card');
+      cards.forEach(card => card.remove());
+    }
+
+    // Nueva búsqueda
+    function newSearch() {
+      searchInput.value = '';
+      clearResults();
+      showStatus('Ingrese código o nombre del producto', 'empty');
+    }
+
+    // Registro del service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js').catch(err => 
+        console.error('Service Worker error:', err)
+      );
+    }
+
+    // Timer de inactividad (2 minutos)
+    let inactivityTimer = null;
+
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        location.reload();
+      }, 120000);
+    }
+
+    ['click', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, resetInactivityTimer, true);
+    });
+
+    resetInactivityTimer();
+  </script>
 </body>
 </html>
