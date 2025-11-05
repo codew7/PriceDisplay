@@ -669,5 +669,15 @@
 
     resetInactivityTimer();
   </script>
+<script>
+  function fixViewportHeight() {
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+  }
+  window.addEventListener('resize', fixViewportHeight);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) fixViewportHeight();
+  });
+  fixViewportHeight();
+</script>
 </body>
 </html>
