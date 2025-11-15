@@ -121,6 +121,16 @@
       display: block;
       margin-left: auto;
       margin-right: auto;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    
+    #statusLogo:hover {
+      transform: scale(1.05);
+    }
+    
+    #statusLogo:active {
+      transform: scale(0.95);
     }
 
     /* Card de resultado */
@@ -465,6 +475,9 @@
         const data = await response.json();
         allData = data.values || [];
         
+        // Cachear imágenes automáticamente al cargar datos
+        cacheProductImages();
+        
         if (searchInput.value.trim()) {
           performSearch(searchInput.value.trim());
         } else {
@@ -475,6 +488,96 @@
         showStatus('❌ Error al cargar los datos. Verifique su conexión.', 'empty');
       } finally {
         isLoading = false;
+      }
+    }
+
+    // Función para cachear todas las imágenes de productos
+    async function cacheProductImages() {
+      if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+        console.log('Service Worker no disponible');
+        return;
+      }
+
+      // Extraer todas las URLs de imágenes
+      const imageUrls = [];
+      allData.forEach(row => {
+        if (row[1]) {
+          const images = row[1].split(',');
+          images.forEach(img => {
+            const url = img.trim();
+            if (url && !imageUrls.includes(url)) {
+              imageUrls.push(url);
+            }
+          });
+        }
+      });
+
+      if (imageUrls.length === 0) return;
+
+      // Enviar mensaje al service worker para cachear imágenes
+      const messageChannel = new MessageChannel();
+      
+      return new Promise((resolve, reject) => {
+        messageChannel.port1.onmessage = (event) => {
+          if (event.data.success) {
+            console.log('Imágenes cacheadas exitosamente');
+            resolve();
+          } else {
+            console.error('Error al cachear imágenes:', event.data.error);
+            reject(event.data.error);
+          }
+        };
+
+        navigator.serviceWorker.controller.postMessage(
+          { type: 'CACHE_IMAGES', imageUrls: imageUrls },
+          [messageChannel.port2]
+        );
+      });
+    }
+
+    // Función para actualizar caché de imágenes (borrar y volver a descargar)
+    async function updateImageCache() {
+      if (!confirm('¿Desea actualizar todas las imágenes de productos? Esto puede tardar un momento.')) {
+        return;
+      }
+
+      if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+        alert('Service Worker no disponible');
+        return;
+      }
+
+      const originalStatus = statusMessage.innerHTML;
+      showStatus('Actualizando imágenes... <div class="spinner"></div>', 'searching');
+
+      try {
+        // Limpiar caché de imágenes
+        const clearChannel = new MessageChannel();
+        await new Promise((resolve, reject) => {
+          clearChannel.port1.onmessage = (event) => {
+            if (event.data.success) resolve();
+            else reject(event.data.error);
+          };
+          navigator.serviceWorker.controller.postMessage(
+            { type: 'CLEAR_IMAGE_CACHE' },
+            [clearChannel.port2]
+          );
+        });
+
+        // Volver a cachear todas las imágenes
+        await cacheProductImages();
+
+        alert('✅ Imágenes actualizadas correctamente');
+        
+        // Restaurar el estado original
+        if (searchInput.value.trim()) {
+          performSearch(searchInput.value.trim());
+        } else {
+          showStatus('Ingrese código o nombre del producto', 'empty');
+        }
+      } catch (error) {
+        console.error('Error al actualizar imágenes:', error);
+        alert('❌ Error al actualizar las imágenes');
+        showStatus(originalStatus, 'empty');
       }
     }
 
@@ -622,7 +725,7 @@
       if (className === 'searching' || message.includes('spinner') || message.includes('Buscando')) {
         statusMessage.innerHTML = message;
       } else {
-        statusMessage.innerHTML = message + '<br><img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint">';
+        statusMessage.innerHTML = message + '<br><img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint" onclick="updateImageCache()">';
       }
       statusMessage.className = className;
       statusMessage.style.display = 'block';
