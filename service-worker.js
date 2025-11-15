@@ -15,7 +15,16 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(urlsToCache);
+    }).then(() => {
+      // Activar inmediatamente el nuevo service worker
+      return self.skipWaiting();
     })
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    self.clients.claim()
   );
 });
 
@@ -29,20 +38,23 @@ self.addEventListener("fetch", event => {
     
     event.respondWith(
       caches.open(IMAGES_CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(response => {
-          if (response) {
-            return response;
+        return cache.match(event.request).then(cachedResponse => {
+          // Si está en caché, retornarla
+          if (cachedResponse) {
+            return cachedResponse;
           }
           
+          // Si no está en caché, descargar de la red
           return fetch(event.request).then(fetchResponse => {
             // Cachear solo respuestas válidas
             if (fetchResponse && fetchResponse.status === 200) {
               cache.put(event.request, fetchResponse.clone());
             }
             return fetchResponse;
-          }).catch(() => {
-            // Retornar imagen placeholder si falla la descarga
-            return response;
+          }).catch(error => {
+            // Si falla la descarga, retornar error
+            console.error('Error fetching image:', event.request.url, error);
+            throw error;
           });
         });
       })
