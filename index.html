@@ -493,88 +493,46 @@
 
     // Función para cachear todas las imágenes de productos
     async function cacheProductImages() {
-      // Esperar a que el service worker esté disponible
-      try {
-        const swController = await waitForServiceWorker();
+      if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+        console.log('Service Worker no disponible');
+        return;
+      }
 
-        // Extraer todas las URLs de imágenes
-        const imageUrls = [];
-        allData.forEach(row => {
-          if (row[1]) {
-            const images = row[1].split(',');
-            images.forEach(img => {
-              const url = img.trim();
-              if (url && !imageUrls.includes(url)) {
-                imageUrls.push(url);
-              }
-            });
-          }
-        });
-
-        if (imageUrls.length === 0) return;
-
-        // Enviar mensaje al service worker para cachear imágenes
-        const messageChannel = new MessageChannel();
-        
-        return new Promise((resolve, reject) => {
-          messageChannel.port1.onmessage = (event) => {
-            if (event.data.success) {
-              console.log('Imágenes cacheadas exitosamente');
-              resolve();
-            } else {
-              console.error('Error al cachear imágenes:', event.data.error);
-              reject(event.data.error);
+      // Extraer todas las URLs de imágenes
+      const imageUrls = [];
+      allData.forEach(row => {
+        if (row[1]) {
+          const images = row[1].split(',');
+          images.forEach(img => {
+            const url = img.trim();
+            if (url && !imageUrls.includes(url)) {
+              imageUrls.push(url);
             }
-          };
+          });
+        }
+      });
 
-          swController.postMessage(
-            { type: 'CACHE_IMAGES', imageUrls: imageUrls },
-            [messageChannel.port2]
-          );
-        });
-      } catch (error) {
-        console.log('No se pudieron cachear las imágenes:', error);
-        // No lanzar error, continuar sin cachear
-      }
-    }
+      if (imageUrls.length === 0) return;
 
-    // Función para esperar a que el service worker esté listo
-    async function waitForServiceWorker() {
-      if (!('serviceWorker' in navigator)) {
-        throw new Error('Service Worker no soportado');
-      }
-
-      // Esperar a que haya un service worker activo
-      let registration = await navigator.serviceWorker.getRegistration();
+      // Enviar mensaje al service worker para cachear imágenes
+      const messageChannel = new MessageChannel();
       
-      if (!registration) {
-        // Intentar registrar el service worker
-        registration = await navigator.serviceWorker.register('./service-worker.js');
-      }
+      return new Promise((resolve, reject) => {
+        messageChannel.port1.onmessage = (event) => {
+          if (event.data.success) {
+            console.log('Imágenes cacheadas exitosamente');
+            resolve();
+          } else {
+            console.error('Error al cachear imágenes:', event.data.error);
+            reject(event.data.error);
+          }
+        };
 
-      // Esperar a que esté activo
-      if (registration.installing) {
-        await new Promise(resolve => {
-          registration.installing.addEventListener('statechange', function() {
-            if (this.state === 'activated') resolve();
-          });
-        });
-      } else if (registration.waiting) {
-        await new Promise(resolve => {
-          registration.waiting.addEventListener('statechange', function() {
-            if (this.state === 'activated') resolve();
-          });
-        });
-      }
-
-      // Esperar a que el controlador esté disponible
-      if (!navigator.serviceWorker.controller) {
-        await new Promise(resolve => {
-          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
-        });
-      }
-
-      return navigator.serviceWorker.controller;
+        navigator.serviceWorker.controller.postMessage(
+          { type: 'CACHE_IMAGES', imageUrls: imageUrls },
+          [messageChannel.port2]
+        );
+      });
     }
 
     // Función para actualizar caché de imágenes (borrar y volver a descargar)
@@ -583,13 +541,15 @@
         return;
       }
 
+      if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+        alert('Service Worker no disponible');
+        return;
+      }
+
       const originalStatus = statusMessage.innerHTML;
       showStatus('Actualizando imágenes... <div class="spinner"></div>', 'searching');
 
       try {
-        // Esperar a que el service worker esté listo
-        const swController = await waitForServiceWorker();
-
         // Limpiar caché de imágenes
         const clearChannel = new MessageChannel();
         await new Promise((resolve, reject) => {
@@ -597,7 +557,7 @@
             if (event.data.success) resolve();
             else reject(event.data.error);
           };
-          swController.postMessage(
+          navigator.serviceWorker.controller.postMessage(
             { type: 'CLEAR_IMAGE_CACHE' },
             [clearChannel.port2]
           );
@@ -616,7 +576,7 @@
         }
       } catch (error) {
         console.error('Error al actualizar imágenes:', error);
-        alert('❌ Error: ' + error.message);
+        alert('❌ Error al actualizar las imágenes');
         showStatus(originalStatus, 'empty');
       }
     }
@@ -791,24 +751,9 @@
 
     // Registro del service worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
-        .then(registration => {
-          // Verificar actualizaciones cada vez que se carga la página
-          registration.update();
-          
-          // Manejar la actualización del service worker
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Hay un nuevo service worker disponible, recargar la página
-                console.log('Nuevo Service Worker disponible, recargando...');
-                window.location.reload();
-              }
-            });
-          });
-        })
-        .catch(err => console.error('Service Worker error:', err));
+      navigator.serviceWorker.register('./service-worker.js').catch(err => 
+        console.error('Service Worker error:', err)
+      );
     }
 
     // Timer de inactividad (2 minutos)
