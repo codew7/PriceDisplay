@@ -337,9 +337,73 @@
     body.offline .offline-banner {
       display: block;
     }
+
+    /* Pantalla de bloqueo de acceso */
+    #accessBlock {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    #accessBlock.active {
+      display: flex;
+    }
+
+    #accessBlock h1 {
+      font-size: clamp(24px, 6vw, 32px);
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    #accessBlock p {
+      font-size: clamp(16px, 4vw, 18px);
+      margin-bottom: 30px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    #accessBlock .icon {
+      font-size: clamp(60px, 15vw, 80px);
+      margin-bottom: 20px;
+    }
+
+    #accessBlock button {
+      background-color: white;
+      color: #667eea;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    #accessBlock button:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 <body>
+  <!-- Pantalla de bloqueo de acceso -->
+  <div id="accessBlock">
+    <div class="icon">🔒</div>
+    <h1>Acceso Restringido</h1>
+    <p id="blockMessage">Esta aplicación solo está disponible en nuestro showroom.</p>
+    <button onclick="retryLocationCheck()">Reintentar</button>
+  </div>
+
   <div class="offline-banner">Sin conexión a Internet</div>
 
   <section id="searchSection">
@@ -414,6 +478,164 @@
   </div>
 
   <script>
+    // ========== SISTEMA DE GEOLOCALIZACIÓN ==========
+    const LOCATION_CONFIG = {
+      // IMPORTANTE: Reemplaza estas coordenadas con las de tu showroom
+      // Para obtenerlas: abre Google Maps, click derecho en tu ubicación -> "¿Qué hay aquí?"
+      latitude: -34.6037,    // Ejemplo: Buenos Aires
+      longitude: -58.3816,   // Ejemplo: Buenos Aires
+      radius: 100,           // Radio en metros (100m = 1 cuadra aprox)
+      sessionDuration: 8 * 60 * 60 * 1000  // 8 horas
+    };
+
+    // Elementos del DOM para bloqueo
+    const accessBlock = document.getElementById('accessBlock');
+    const blockMessage = document.getElementById('blockMessage');
+
+    // Verificar acceso al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      validateAccess();
+    });
+
+    // Función principal de validación
+    function validateAccess() {
+      // Verificar si hay una sesión válida
+      const session = localStorage.getItem('showroomSession');
+      
+      if (session) {
+        const sessionData = JSON.parse(session);
+        const sessionAge = Date.now() - sessionData.timestamp;
+        
+        if (sessionAge < LOCATION_CONFIG.sessionDuration) {
+          // Sesión válida, permitir acceso
+          allowAccess();
+          return;
+        }
+      }
+      
+      // No hay sesión válida, solicitar ubicación
+      requestLocationAccess();
+    }
+
+    // Solicitar acceso a la ubicación
+    function requestLocationAccess() {
+      if (!navigator.geolocation) {
+        blockAccess('Tu dispositivo no soporta geolocalización.');
+        return;
+      }
+
+      blockMessage.innerHTML = '<div class="spinner" style="border-color: rgba(255,255,255,0.3); border-top-color: #fff;"></div><br>Verificando ubicación...';
+      accessBlock.classList.add('active');
+
+      navigator.geolocation.getCurrentPosition(
+        handleLocationSuccess,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    // Manejar éxito en obtener ubicación
+    function handleLocationSuccess(position) {
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      // Calcular distancia al showroom
+      const distance = calculateDistance(
+        userLat,
+        userLng,
+        LOCATION_CONFIG.latitude,
+        LOCATION_CONFIG.longitude
+      );
+
+      console.log(`Distancia al showroom: ${distance.toFixed(2)}m (precisión: ${accuracy.toFixed(2)}m)`);
+
+      // Verificar si está dentro del radio permitido
+      if (distance <= LOCATION_CONFIG.radius) {
+        // Crear sesión válida
+        localStorage.setItem('showroomSession', JSON.stringify({
+          timestamp: Date.now(),
+          location: { lat: userLat, lng: userLng }
+        }));
+        
+        allowAccess();
+      } else {
+        blockAccess(
+          `Esta aplicación solo está disponible en nuestro showroom.<br><br>` +
+          `<small style="opacity: 0.8;">Distancia: ${distance.toFixed(0)}m del showroom</small>`
+        );
+      }
+    }
+
+    // Manejar error en obtener ubicación
+    function handleLocationError(error) {
+      let message = '';
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          message = 'Debes permitir el acceso a tu ubicación para usar esta aplicación.<br><br>' +
+                   '<small>Ve a Configuración > Permisos > Ubicación</small>';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          message = 'No se pudo obtener tu ubicación.<br><br>' +
+                   '<small>Asegúrate de tener el GPS activado</small>';
+          break;
+        case error.TIMEOUT:
+          message = 'Tiempo de espera agotado al obtener ubicación.<br><br>' +
+                   '<small>Intenta de nuevo</small>';
+          break;
+        default:
+          message = 'Error desconocido al obtener ubicación.';
+      }
+      
+      blockAccess(message);
+    }
+
+    // Calcular distancia entre dos puntos (Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // Radio de la Tierra en metros
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c; // Distancia en metros
+    }
+
+    // Permitir acceso a la aplicación
+    function allowAccess() {
+      accessBlock.classList.remove('active');
+      // Continuar con la carga normal de la aplicación
+      if (!navigator.onLine) {
+        document.body.classList.add('offline');
+        showStatus('Sin conexión a Internet', 'empty');
+      } else if (allData.length === 0) {
+        loadData();
+      }
+    }
+
+    // Bloquear acceso a la aplicación
+    function blockAccess(message) {
+      blockMessage.innerHTML = message;
+      accessBlock.classList.add('active');
+    }
+
+    // Reintentar verificación de ubicación
+    function retryLocationCheck() {
+      requestLocationAccess();
+    }
+
+    // ========== FIN SISTEMA DE GEOLOCALIZACIÓN ==========
+
     // Configuración de la API
     const API_KEY = 'AIzaSyDwiZWDc66tv4usDIA-IreiJMLFuk0236Q';
     const SPREADSHEET_ID = '1cD50d0-oSTogEe9tYo9ABUSP1ONCy3SAV92zsYYIG84';
@@ -450,15 +672,8 @@
     window.addEventListener('online', handleConnectionChange);
     window.addEventListener('offline', handleConnectionChange);
 
-    // Cargar datos al inicio
-    window.addEventListener('DOMContentLoaded', () => {
-      if (!navigator.onLine) {
-        document.body.classList.add('offline');
-        showStatus('Sin conexión a Internet', 'empty');
-      } else {
-        loadData();
-      }
-    });
+    // La carga de datos ahora se maneja después de validar la ubicación
+    // Ver función allowAccess() arriba
 
     // Cargar datos del Google Sheets
     async function loadData() {
