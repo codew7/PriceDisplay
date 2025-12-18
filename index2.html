@@ -508,11 +508,11 @@
     const LOCATION_CONFIG = {
       // IMPORTANTE: Reemplaza estas coordenadas con las de tu showroom
       // Para obtenerlas: abre Google Maps, click derecho en tu ubicación -> "¿Qué hay aquí?"
-      latitude: -34.6037,    // Ejemplo: Buenos Aires
-      longitude: -58.3816,   // Ejemplo: Buenos Aires
-      radius: 100,           // Radio en metros (100m = 1 cuadra aprox)
+      latitude: -34.5331,    // Ejemplo: Buenos Aires
+      longitude: -58.5115,   // Ejemplo: Buenos Aires
+      radius: 200,           // Radio en metros (100m = 1 cuadra aprox)
       sessionDuration: 8 * 60 * 60 * 1000,  // 8 horas
-      maxSessionTime: 60 * 60 * 1000  // 30 minutos antes de cerrar
+      maxSessionTime: 60 * 60 * 1000  // 60 minutos antes de cerrar
     };
 
     // Elementos del DOM para bloqueo
@@ -889,7 +889,7 @@
         if (searchInput.value.trim()) {
           performSearch(searchInput.value.trim());
         } else {
-          showStatus('Ingrese código o nombre del producto', 'empty');
+          showStatus('Ingrese nombre del producto o tipo de articulos ej. Licuadora, Sabana, Parlante, etc.', 'empty');
         }
       } catch (error) {
         console.error('Error:', error);
