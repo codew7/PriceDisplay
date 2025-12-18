@@ -511,12 +511,16 @@
       latitude: -14.6037,    // Ejemplo: Buenos Aires
       longitude: -58.3816,   // Ejemplo: Buenos Aires
       radius: 100,           // Radio en metros (100m = 1 cuadra aprox)
-      sessionDuration: 8 * 60 * 60 * 1000  // 8 horas
+      sessionDuration: 8 * 60 * 60 * 1000,  // 8 horas
+      maxSessionTime: 60 * 60 * 1000  // 30 minutos antes de cerrar
     };
 
     // Elementos del DOM para bloqueo
     const accessBlock = document.getElementById('accessBlock');
     const blockMessage = document.getElementById('blockMessage');
+
+    // Timer para cerrar la página
+    let autoCloseTimer = null;
 
     // Verificar acceso al cargar la página
     window.addEventListener('DOMContentLoaded', () => {
@@ -641,6 +645,10 @@
     // Permitir acceso a la aplicación
     function allowAccess() {
       accessBlock.classList.remove('active');
+      
+      // Iniciar timer de cierre automático
+      startAutoCloseTimer();
+      
       // Continuar con la carga normal de la aplicación
       if (!navigator.onLine) {
         document.body.classList.add('offline');
@@ -742,6 +750,78 @@
         return '💡 Haz clic en el ícono 🔒 en la barra de direcciones';
       }
     }
+
+    // ========== SISTEMA DE CIERRE AUTOMÁTICO ==========
+    
+    // Iniciar timer de cierre automático
+    function startAutoCloseTimer() {
+      // Limpiar timer anterior si existe
+      if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+      }
+      
+      console.log('Sesión iniciada. Se cerrará automáticamente en 30 minutos.');
+      
+      // Configurar timer para 30 minutos
+      autoCloseTimer = setTimeout(() => {
+        expireSession();
+      }, LOCATION_CONFIG.maxSessionTime);
+    }
+
+    // Expirar sesión y cerrar página
+    function expireSession() {
+      console.log('Sesión expirada. Cerrando aplicación...');
+      
+      // Limpiar sesión
+      localStorage.removeItem('showroomSession');
+      
+      // Mostrar pantalla de sesión expirada
+      showSessionExpired();
+      
+      // Intentar cerrar la ventana después de 2 segundos
+      setTimeout(() => {
+        attemptToClose();
+      }, 2000);
+    }
+
+    // Mostrar pantalla de sesión expirada
+    function showSessionExpired() {
+      const buttonContainer = document.getElementById('buttonContainer');
+      const helpText = document.getElementById('helpText');
+      
+      // Cambiar ícono y mensaje
+      document.querySelector('#accessBlock .icon').textContent = '⏰';
+      document.querySelector('#accessBlock h1').textContent = 'Sesión Expirada';
+      blockMessage.innerHTML = 'La sesión ha expirado después de 30 minutos.<br><br>La aplicación se cerrará automáticamente.';
+      
+      // Ocultar botones
+      buttonContainer.innerHTML = '';
+      helpText.style.display = 'none';
+      
+      // Mostrar pantalla de bloqueo
+      accessBlock.classList.add('active');
+    }
+
+    // Intentar cerrar la ventana/pestaña
+    function attemptToClose() {
+      // Método 1: Intentar cerrar la ventana directamente
+      window.close();
+      
+      // Método 2: Si no se puede cerrar, redirigir a página en blanco
+      setTimeout(() => {
+        // Si la ventana todavía está abierta después de 500ms
+        // (window.close() no funcionó), mostrar instrucciones
+        blockMessage.innerHTML = 'La sesión ha expirado.<br><br>' +
+          '<small style="opacity: 0.8;">Por favor, cierra esta pestaña manualmente.</small>';
+        
+        // Opcional: Redirigir a about:blank después de 3 segundos
+        setTimeout(() => {
+          window.location.href = 'about:blank';
+        }, 3000);
+      }, 500);
+    }
+
+    // ========== FIN SISTEMA DE CIERRE AUTOMÁTICO ==========
 
     // ========== FIN SISTEMA DE GEOLOCALIZACIÓN ==========
 
