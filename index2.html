@@ -378,6 +378,13 @@
       margin-bottom: 20px;
     }
 
+    #accessBlock .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
     #accessBlock button {
       background-color: white;
       color: #667eea;
@@ -388,10 +395,26 @@
       font-weight: 600;
       cursor: pointer;
       transition: transform 0.2s ease;
+      min-width: 200px;
     }
 
     #accessBlock button:active {
       transform: scale(0.95);
+    }
+
+    #accessBlock button.secondary {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 14px;
+      padding: 12px 24px;
+    }
+
+    #accessBlock .help-text {
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.8;
+      max-width: 300px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -401,7 +424,10 @@
     <div class="icon">🔒</div>
     <h1>Acceso Restringido</h1>
     <p id="blockMessage">Esta aplicación solo está disponible en nuestro showroom.</p>
-    <button onclick="retryLocationCheck()">Reintentar</button>
+    <div class="button-container" id="buttonContainer">
+      <button onclick="retryLocationCheck()">Reintentar</button>
+    </div>
+    <div class="help-text" id="helpText" style="display: none;"></div>
   </div>
 
   <div class="offline-banner">Sin conexión a Internet</div>
@@ -574,11 +600,12 @@
     // Manejar error en obtener ubicación
     function handleLocationError(error) {
       let message = '';
+      let showSettingsButton = false;
       
       switch(error.code) {
         case error.PERMISSION_DENIED:
-          message = 'Debes permitir el acceso a tu ubicación para usar esta aplicación.<br><br>' +
-                   '<small>Ve a Configuración > Permisos > Ubicación</small>';
+          message = 'Debes permitir el acceso a tu ubicación para usar esta aplicación.';
+          showSettingsButton = true;
           break;
         case error.POSITION_UNAVAILABLE:
           message = 'No se pudo obtener tu ubicación.<br><br>' +
@@ -592,7 +619,7 @@
           message = 'Error desconocido al obtener ubicación.';
       }
       
-      blockAccess(message);
+      blockAccess(message, showSettingsButton);
     }
 
     // Calcular distancia entre dos puntos (Haversine formula)
@@ -624,14 +651,96 @@
     }
 
     // Bloquear acceso a la aplicación
-    function blockAccess(message) {
+    function blockAccess(message, showSettingsButton = false) {
       blockMessage.innerHTML = message;
       accessBlock.classList.add('active');
+      
+      const buttonContainer = document.getElementById('buttonContainer');
+      const helpText = document.getElementById('helpText');
+      
+      // Restaurar botón de reintentar
+      buttonContainer.innerHTML = '<button onclick="retryLocationCheck()">Reintentar</button>';
+      
+      // Agregar botón de configuración si es necesario
+      if (showSettingsButton) {
+        buttonContainer.innerHTML += '<button class="secondary" onclick="openLocationSettings()">⚙️ Ir a Configuración</button>';
+        
+        // Mostrar texto de ayuda
+        helpText.style.display = 'block';
+        helpText.innerHTML = getSettingsInstructions();
+      } else {
+        helpText.style.display = 'none';
+      }
     }
 
     // Reintentar verificación de ubicación
     function retryLocationCheck() {
       requestLocationAccess();
+    }
+
+    // Abrir configuración de ubicación
+    function openLocationSettings() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const url = window.location.href;
+      
+      // Detectar navegador y sistema operativo
+      if (/android/i.test(userAgent)) {
+        // Android
+        if (/chrome/i.test(userAgent)) {
+          // Chrome en Android: abrir configuración del sitio
+          alert('Para permitir la ubicación:\n\n' +
+                '1. Toca el ícono 🔒 o ℹ️ junto a la URL\n' +
+                '2. Toca "Permisos"\n' +
+                '3. Activa "Ubicación"\n' +
+                '4. Recarga la página');
+        } else {
+          // Otros navegadores Android
+          alert('Para permitir la ubicación:\n\n' +
+                '1. Ve a Configuración del navegador\n' +
+                '2. Busca "Permisos de sitios"\n' +
+                '3. Encuentra este sitio\n' +
+                '4. Activa "Ubicación"\n' +
+                '5. Recarga la página');
+        }
+      } else if (/iphone|ipad|ipod/i.test(userAgent)) {
+        // iOS
+        if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) {
+          // Safari en iOS
+          alert('Para permitir la ubicación:\n\n' +
+                '1. Abre Ajustes de iOS\n' +
+                '2. Busca "Safari"\n' +
+                '3. Toca "Ubicación"\n' +
+                '4. Selecciona "Preguntar" o "Permitir"\n' +
+                '5. Vuelve aquí y toca "Reintentar"');
+        } else {
+          // Chrome u otros en iOS
+          alert('Para permitir la ubicación:\n\n' +
+                '1. Abre Ajustes de iOS\n' +
+                '2. Busca el nombre del navegador\n' +
+                '3. Activa "Ubicación"\n' +
+                '4. Vuelve aquí y toca "Reintentar"');
+        }
+      } else {
+        // Desktop u otros
+        alert('Para permitir la ubicación:\n\n' +
+              '1. Busca el ícono 🔒 en la barra de direcciones\n' +
+              '2. Busca "Ubicación" en permisos\n' +
+              '3. Cambia a "Permitir"\n' +
+              '4. Recarga la página');
+      }
+    }
+
+    // Obtener instrucciones según el dispositivo
+    function getSettingsInstructions() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      
+      if (/android/i.test(userAgent)) {
+        return '💡 Toca el ícono 🔒 junto a la URL arriba y permite la ubicación';
+      } else if (/iphone|ipad|ipod/i.test(userAgent)) {
+        return '💡 Ve a Ajustes de iOS > Safari/Navegador > Ubicación';
+      } else {
+        return '💡 Haz clic en el ícono 🔒 en la barra de direcciones';
+      }
     }
 
     // ========== FIN SISTEMA DE GEOLOCALIZACIÓN ==========
