@@ -354,11 +354,7 @@
   </section>
 
   <div id="resultsContainer">
-    <div id="statusMessage" class="empty">
-      Ingrese código o nombre del producto
-      <br>
-      <img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint">
-    </div>
+    <div id="statusMessage" class="empty"></div>
   </div>
 
   <div id="virtualKeyboard">
@@ -483,11 +479,11 @@
         
         // Cachear imágenes automáticamente al cargar datos
         cacheProductImages();
-        
+
         if (searchInput.value.trim()) {
           performSearch(searchInput.value.trim());
         } else {
-          showStatus('Ingrese código o nombre del producto', 'empty');
+          showIdleState();
         }
       } catch (error) {
         console.error('Error:', error);
@@ -612,7 +608,7 @@
 
       if (query.length === 0) {
         clearResults();
-        showStatus('Ingrese código o nombre del producto', 'empty');
+        showIdleState();
         return;
       }
 
@@ -737,13 +733,55 @@
       return card;
     }
 
+    // Mostrar estado inactivo (pantalla de inicio)
+    function showIdleState() {
+      statusMessage.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px 0;">
+          <p style="
+            font-size: 21px;
+            color: #222;
+            text-align: center;
+            line-height: 1.75;
+            margin: 0 0 50px;
+            font-weight: 600;
+
+          ">
+            Ingrese los últimos 5 números del código de barras, o el código de cinco dígitos de la etiqueta
+          </p>
+          <img
+            src="etiquetas.png"
+            alt="Etiqueta de producto"
+            onclick="updateImageCache()"
+            style="
+              width: 90%;
+              max-width: 340px;
+              object-fit: contain;
+              cursor: pointer;
+            "
+          >
+        <p style="
+            font-size: 18px;
+            color: #222;
+            text-align: center;
+            line-height: 1.75;
+            margin-top: 50px;
+            font-weight: 400;
+
+          ">
+            * También puede buscar por nombre genérico. <br> Ej. Sábana, Licuadora, Auricular, etc.
+          </p>
+        </div>
+      `;
+      statusMessage.className = 'empty';
+      statusMessage.style.display = 'block';
+    }
+
     // Mostrar mensaje de estado
     function showStatus(message, className) {
-      // Solo mostrar logo si no es mensaje de búsqueda o spinner
       if (className === 'searching' || message.includes('spinner') || message.includes('Buscando')) {
         statusMessage.innerHTML = message;
       } else {
-        statusMessage.innerHTML = message + '<br><img id="statusLogo" src="logo.png" alt="Distribuidora HomePoint" onclick="updateImageCache()">';
+        statusMessage.innerHTML = message;
       }
       statusMessage.className = className;
       statusMessage.style.display = 'block';
@@ -765,7 +803,7 @@
     function newSearch() {
       searchInput.value = '';
       clearResults();
-      showStatus('Ingrese código o nombre del producto', 'empty');
+      showIdleState();
     }
 
     // Registro del service worker
