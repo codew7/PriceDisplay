@@ -623,6 +623,8 @@
       }, 300);
     }
 
+    const MAX_RESULTS = 50;
+
     // Realizar búsqueda
     function performSearch(query) {
       if (allData.length === 0) {
@@ -631,15 +633,16 @@
       }
 
       const lowerQuery = query.toLowerCase();
-      
+      const isNumericQuery = /^\d+$/.test(query);
+
       // Buscar en columnas C (índice 2), D (3), G (6), H (7)
+      // Para la columna G (Barcode/Code), solo buscar si la query tiene al menos 3 caracteres
       const results = allData.filter(row => {
-        return (
-          (row[2] && row[2].toString().toLowerCase().includes(lowerQuery)) ||
-          (row[3] && row[3].toString().toLowerCase().includes(lowerQuery)) ||
-          (row[6] && row[6].toString().toLowerCase().includes(lowerQuery)) ||
-          (row[7] && row[7].toString().toLowerCase().includes(lowerQuery))
-        );
+        const matchCode    = row[2] && row[2].toString().toLowerCase().includes(lowerQuery);
+        const matchName    = row[3] && row[3].toString().toLowerCase().includes(lowerQuery);
+        const matchBarcode = isNumericQuery && query.length >= 3 && row[6] && row[6].toString().toLowerCase().includes(lowerQuery);
+        const matchKeyword = row[7] && row[7].toString().toLowerCase().includes(lowerQuery);
+        return matchCode || matchName || matchBarcode || matchKeyword;
       });
 
       displayResults(results);
@@ -656,10 +659,19 @@
 
       hideStatus();
 
-      results.forEach(row => {
-        const card = createResultCard(row);
-        resultsContainer.appendChild(card);
+      const limited = results.slice(0, MAX_RESULTS);
+      const fragment = document.createDocumentFragment();
+      limited.forEach(row => {
+        fragment.appendChild(createResultCard(row));
       });
+      resultsContainer.appendChild(fragment);
+
+      if (results.length > MAX_RESULTS) {
+        const notice = document.createElement('div');
+        notice.style.cssText = 'text-align:center;padding:10px;color:#999;font-size:14px;';
+        notice.textContent = `Mostrando ${MAX_RESULTS} de ${results.length} resultados. Escriba más caracteres para afinar la búsqueda.`;
+        resultsContainer.appendChild(notice);
+      }
     }
 
     // Crear tarjeta de resultado
@@ -744,8 +756,9 @@
 
     // Limpiar resultados
     function clearResults() {
-      const cards = resultsContainer.querySelectorAll('.result-card');
-      cards.forEach(card => card.remove());
+      Array.from(resultsContainer.children).forEach(child => {
+        if (child !== statusMessage) child.remove();
+      });
     }
 
     // Nueva búsqueda
